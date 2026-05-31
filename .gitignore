@@ -27,3 +27,7 @@ dist-ssr
 # Build/tooling
 *.glb.bak
 .vercel
+
+# Local env (keys)
+.env
+.env.local
