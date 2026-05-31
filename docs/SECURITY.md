@@ -19,12 +19,17 @@ surface small.
 
 ## Response headers (configured in `vercel.json`)
 
-- `Content-Security-Policy` — restricts to same-origin scripts plus
-  `'wasm-unsafe-eval'` (the Basis/KTX2 and Draco transcoders are WebAssembly)
-  and `worker-src blob:` (the KTX2 transcoder runs in a worker created from a
-  blob URL). `object-src 'none'`, `base-uri 'self'`.
-  **Verify in-browser on first deploy** and relax only if a needed origin is
-  blocked.
+- `Content-Security-Policy` — same-origin by default. The 3D pipeline forces a
+  few specific allowances: `'unsafe-eval'` in `script-src` (the Basis/KTX2 and
+  Draco WebAssembly modules are Emscripten builds whose embind glue calls
+  `new Function`, which `'wasm-unsafe-eval'` alone does not permit), and `blob:`
+  in `script-src`/`worker-src`/`child-src`/`connect-src` (the transcoders run in
+  blob-URL workers that fetch their payloads via blob:/data:). The Draco decoder
+  is **self-hosted** under `public/draco/`, so no external origin is needed.
+  `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`.
+  Trade-off: `'unsafe-eval'` weakens XSS defense-in-depth, but the site accepts
+  no user input and loads no third-party scripts, so the practical exposure is
+  low; it is required for the WASM 3D stack to run.
 - `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`
   (camera/microphone/geolocation denied).
