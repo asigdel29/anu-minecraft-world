@@ -1,28 +1,45 @@
-# 🎉 Award-Winning Immersive Minecraft Portfolio 🎉
+# anu-minecraft-world
 
-**[Live Site](http://woanminecraftfolio.com/)** | **[Blender File](https://drive.google.com/drive/folders/1xrkCNELEefpR9clwLTjk-HQ2uRkQzaHy?usp=sharing)**
+Anu's interactive 3D portfolio — a scroll-driven Minecraft scene rendered in
+the browser with [React Three Fiber](https://r3f.docs.pmnd.rs/). Navigate the
+world to explore projects, an about page, a reading shelf, and a set of links.
 
-This repo contains code of a an immersive three.js website portfolio!! This website won some awards! See them here:
-
-- [FWA of the Day](https://thefwa.com/cases/educational-minecraft-folio)
-- [Awwwards Honorable Mention](https://www.awwwards.com/sites/educational-minecraft-folio)
-- [CSSDA Special Kudios and Best UI/UX/Innovation Awards](https://www.cssdesignawards.com/sites/educational-minecraft-folio/46808/)
+Live: [sigdel.world](https://sigdel.world)
 
 ![Home page screenshot](public/media/og/og-image.webp?raw=true "Home page screenshot")
 
-## Instructions
+## Tech
 
-```
+- **React + Vite** single-page app (static; no backend)
+- **three.js / React Three Fiber / drei** for the 3D scene
+- **KTX2 + Draco** compressed glTF models, **zustand** for UI state, **SCSS**
+  for styling
+
+## Develop
+
+```bash
 npm install
-npm run dev
+npm run dev      # start the dev server
+npm run build    # production build to dist/
+npm run lint     # ESLint
 ```
 
-## Updates!!!
+## Documentation
 
-- Set flat={true} on your Canvas component to get rid of tonemapping issues!
-- Added a rotation buffer to smooth rotations.
-- I did end up adding a camera group so the offset was according to its local axis instead of the global one, it felt better that way.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — project layout and key
+  decisions (content/presentation split, code splitting, caching, baked
+  signage).
+- [`docs/SECURITY.md`](docs/SECURITY.md) — security review and response headers.
 
-## ❤️ Inspo!!! ❤️
+## Deployment
 
-- [House Design](https://youtu.be/lkJ8zbYotGQ)
+Static deploy on Vercel (see [`vercel.json`](vercel.json)). No serverless
+functions are used, so there is no compute cost — only CDN bandwidth. Hashed
+build assets are cached immutably; `index.html` is always revalidated so
+deploys go live immediately.
+
+## Credits
+
+The immersive Minecraft world is built on the wonderful open-source folio
+template by **Andrew Woan** — full credit to him for the original 3D scene and
+camera work. See [`LICENSE.md`](LICENSE.md).
