@@ -41,5 +41,4 @@ deploys go live immediately.
 ## Credits
 
 The immersive Minecraft world is built on the wonderful open-source folio
-template by **Andrew Woan** — full credit to him for the original 3D scene and
-camera work. See [`LICENSE.md`](LICENSE.md).
+template by **Andrew Woan** — full credit to him for the original 3D scene. See [`LICENSE.md`](LICENSE.md).
