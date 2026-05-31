@@ -1,0 +1,53 @@
+@use "../../index.scss" as styles;
+
+.data-container {
+  padding: 12px;
+}
+
+.image-wrapper {
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.data-image {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.image-wrapper-two {
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+  margin-bottom: 12px;
+
+  @media (max-width: 480px) {
+    height: auto;
+  }
+}
+
+.data-image-two {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.info-section-header {
+  margin-bottom: 18px;
+  padding: 8px;
+  color: white;
+  background-color: styles.$color-base-dark-gray-two;
+}
+
+.section-paragraph {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  color: white;
+  margin-bottom: 24px;
+}
+
+.yellow-text {
+  color: styles.$color-font-primary-yellow;
+}

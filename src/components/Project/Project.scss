@@ -1,0 +1,46 @@
+@use "../../index.scss" as styles;
+
+.project-container {
+  padding: 12px;
+}
+
+.project-image-wrapper {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  overflow: hidden;
+}
+
+.project-image {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.coming-soon-pill {
+  display: inline-block;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  padding: 10px;
+  font-size: 18px;
+  color: styles.$color-base-dark-gray;
+  background-color: styles.$color-base-gray;
+  border: 2px solid styles.$color-base-dark-gray-four;
+  box-shadow: inset 2px 2px #ffffffc0, inset -2px -2px #323232c0;
+  opacity: 0.85;
+  cursor: default;
+}
+
+.project-section-header {
+  margin-top: 24px;
+  margin-bottom: 18px;
+  padding: 8px;
+  color: white;
+  background-color: styles.$color-base-dark-gray-two;
+}
+
+.section-paragraph {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  color: white;
+}

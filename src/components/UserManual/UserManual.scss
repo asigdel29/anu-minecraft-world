@@ -1,0 +1,26 @@
+@use "../../index.scss" as styles;
+
+.data-container {
+  padding: 12px;
+}
+
+.manual-section-header {
+  margin-bottom: 18px;
+  padding: 8px;
+  color: white;
+  background-color: styles.$color-base-dark-gray-two;
+}
+
+.data-section {
+  margin-bottom: 8px;
+}
+
+.section-paragraph {
+  margin-top: 8px;
+  margin-bottom: 16px;
+  color: white;
+}
+
+.yellow-text {
+  color: styles.$color-font-primary-yellow;
+}

@@ -1,0 +1,29 @@
+@use "../../index.scss" as styles;
+
+.info-toggle-button {
+  color: styles.$color-base-dark-gray-four;
+  box-shadow: inset 2px 2px #ffffffc0, inset -2px -2px #323232c0;
+  background-color: styles.$color-base-gray;
+  border: 2px solid styles.$color-base-dark-gray-four;
+  display: flex;
+  place-content: center;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  font-size: 18px;
+  text-decoration: none;
+  position: absolute;
+  width: 43px;
+  height: 43px;
+  top: 24px;
+  right: 24px;
+  z-index: 95;
+
+  &:hover {
+    color: white;
+    border: 2px solid white;
+    background-color: styles.$color-base-green;
+    cursor: pointer;
+    box-shadow: inset 2px 2px #53d95ac0, inset -2px -2px #118316c0;
+  }
+}

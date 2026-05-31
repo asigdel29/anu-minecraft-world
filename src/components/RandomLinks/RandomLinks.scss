@@ -1,0 +1,48 @@
+@use "../../index.scss" as styles;
+
+.data-container {
+  padding: 12px;
+}
+
+.random-links-intro {
+  margin-bottom: 18px;
+  padding: 8px;
+  color: white;
+  background-color: styles.$color-base-dark-gray-two;
+}
+
+.random-links-list {
+  list-style: none;
+}
+
+.random-links-item {
+  margin-bottom: 12px;
+}
+
+.random-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  color: white;
+  text-decoration: none;
+  background-color: styles.$color-base-dark-gray-three;
+  border: 2px solid styles.$color-base-dark-gray-four;
+  box-shadow: inset 2px 2px #ffffff20, inset -2px -2px #00000060;
+  transition: background-color 0.12s, color 0.12s;
+
+  &:hover {
+    color: styles.$color-base-dark-gray;
+    background-color: styles.$color-base-green;
+    border-color: white;
+
+    .random-link-arrow {
+      color: styles.$color-font-primary-yellow;
+    }
+  }
+}
+
+.random-link-arrow {
+  color: styles.$color-base-green;
+  flex-shrink: 0;
+}
