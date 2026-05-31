@@ -1,4 +1,4 @@
-import { Howl } from "howler";
+import { Howl, Howler } from "howler";
 import { useAudioStore } from "../Experience/stores/audioStore";
 
 // Create sound instances
