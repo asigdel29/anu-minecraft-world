@@ -5,7 +5,9 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist'] },
+  // `public/` holds vendored, pre-minified assets (e.g. the Basis transcoder)
+  // and `dist/` is build output; neither should be linted as project source.
+  { ignores: ['dist', 'public/**'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
@@ -29,6 +31,12 @@ export default [
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
       'react/jsx-no-target-blank': 'off',
+      // This is a plain-JavaScript app; runtime prop-type validation is not used.
+      'react/prop-types': 'off',
+      // React Three Fiber renders custom JSX elements (mesh, group, geometry,
+      // material, ...) whose attributes are not standard DOM properties, so the
+      // DOM-oriented unknown-property check produces false positives here.
+      'react/no-unknown-property': 'off',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
