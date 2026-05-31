@@ -4,7 +4,6 @@ Command: npx gltfjsx@6.5.3 GrassSidesT.glb --transform -d
 Files: GrassSidesT.glb [5.67MB] > C:\Users\andre\My Stuff\Blender Projects\Minecraft Portfolio\Objects\For Use\GrassSidesT-transformed.glb [5.43MB] (4%)
 */
 
-import React from "react";
 
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";

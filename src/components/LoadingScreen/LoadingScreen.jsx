@@ -46,7 +46,7 @@ const LoadingScreen = () => {
               isRevealed ? "revealed" : ""
             }`}
           >
-            hi, i'm anu :D thanks for stopping by!! ✨
+            hi, i&apos;m anu :D thanks for stopping by!! ✨
           </div>
           <div
             className={`instructions-container ${isRevealed ? "revealed" : ""}`}

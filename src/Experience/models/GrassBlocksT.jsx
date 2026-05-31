@@ -4,7 +4,6 @@ Command: npx gltfjsx@6.5.3 GrassBlocksT.glb --transform -d
 Files: GrassBlocksT.glb [11.35MB] > C:\Users\andre\My Stuff\Blender Projects\Minecraft Portfolio\Objects\For Use\GrassBlocksT-transformed.glb [10.7MB] (6%)
 */
 
-import React from "react";
 
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";

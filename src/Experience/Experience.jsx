@@ -1,4 +1,4 @@
-import { React, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
@@ -59,7 +59,7 @@ const Experience = () => {
       lastTouchY.current = e.touches[0].clientY;
     };
 
-    const handleTouchEnd = (e) => {
+    const handleTouchEnd = () => {
       isSwiping.current = false;
       lastTouchY.current = null;
     };

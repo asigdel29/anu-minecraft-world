@@ -4,7 +4,7 @@
 // Files: DetailT.glb [2.58MB] > C:\Users\andre\Downloads\DetailT-transformed.glb [2.51MB] (3%)
 // */
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import * as THREE from "three";
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";

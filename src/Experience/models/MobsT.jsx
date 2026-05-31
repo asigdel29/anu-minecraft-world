@@ -11,7 +11,7 @@ import { useAnimations } from "@react-three/drei";
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";
 
-export default function Model({ progress = 0, ...props }) {
+export default function Model({ ...props }) {
   const group = React.useRef();
   const { nodes, materials, animations } = useGLTFWithKTX2(
     "/models/MobsT-transformed.glb"

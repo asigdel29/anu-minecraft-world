@@ -1,4 +1,4 @@
-import { React, Suspense, useState, useRef } from "react";
+import { Suspense, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
@@ -221,7 +221,7 @@ const Scene = ({
         <FrontGrass />
         <GrassBlocks />
         <GrassSides />
-        <Mobs progress={scrollProgress} />
+        <Mobs />
         <WallText />
       </Suspense>
     </>

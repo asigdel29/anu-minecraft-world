@@ -4,7 +4,6 @@ Command: npx gltfjsx@6.5.3 BackGrassT.glb --transform -d
 Files: BackGrassT.glb [5.3MB] > C:\Users\andre\My Stuff\Blender Projects\Minecraft Portfolio\Objects\For Use\BackGrassT-transformed.glb [4.85MB] (9%)
 */
 
-import React from "react";
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";
 

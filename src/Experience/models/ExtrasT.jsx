@@ -4,7 +4,6 @@ Command: npx gltfjsx@6.5.3 ExtrasT.glb --transform -d
 Files: ExtrasT.glb [12.04MB] > C:\Users\andre\My Stuff\Blender Projects\Minecraft Portfolio\Objects\For Use\ExtrasT-transformed.glb [11.95MB] (1%)
 */
 
-import React from "react";
 
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";

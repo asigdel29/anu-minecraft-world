@@ -4,7 +4,6 @@ Command: npx gltfjsx@6.5.3 HouseT.glb --transform -d
 Files: HouseT.glb [13.54MB] > C:\Users\andre\My Stuff\Blender Projects\Minecraft Portfolio\Objects\For Use\HouseT-transformed.glb [13.48MB] (1%)
 */
 
-import React from "react";
 
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";
