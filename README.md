@@ -12,8 +12,10 @@ Live: [sigdel.world](https://sigdel.world)
 
 - **React + Vite** single-page app (static; no backend)
 - **three.js / React Three Fiber / drei** for the 3D scene
-- **KTX2 + Draco** compressed glTF models, **zustand** for UI state, **SCSS**
-  for styling
+- **KTX2 + Draco** compressed glTF models (self-hosted decoders under
+  `public/basis` and `public/draco`), **zustand** for UI state, **SCSS** for
+  styling
+- **PostHog** product analytics + **Vercel Web Analytics / Speed Insights**
 
 ## Develop
 
@@ -24,6 +26,19 @@ npm run build    # production build to dist/
 npm run lint     # ESLint
 ```
 
+## Environment
+
+Analytics is optional and disabled until configured. Copy `.env.example` to
+`.env` (local) or set the vars in Vercel → Settings → Environment Variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_PUBLIC_POSTHOG_KEY` | PostHog project key; when unset, PostHog is a no-op |
+| `VITE_PUBLIC_POSTHOG_HOST` | PostHog host (default `https://us.i.posthog.com`) |
+
+Vercel Web Analytics and Speed Insights need no keys — enable them for the
+project in the Vercel dashboard.
+
 ## Documentation
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — project layout and key
@@ -33,10 +48,19 @@ npm run lint     # ESLint
 
 ## Deployment
 
-Static deploy on Vercel (see [`vercel.json`](vercel.json)). No serverless
-functions are used, so there is no compute cost — only CDN bandwidth. Hashed
-build assets are cached immutably; `index.html` is always revalidated so
-deploys go live immediately.
+Static deploy on Vercel (see [`vercel.json`](vercel.json)); pushes to `main`
+deploy automatically. No serverless functions are used, so there is no compute
+cost — only CDN bandwidth.
+
+Caching policy:
+
+- Content-hashed build assets (`/assets`) and vendored decoders
+  (`/fonts`, `/basis`, `/draco`) are cached immutably for a year.
+- Assets that change between deploys (`/models`, `/images`, `/cubemap`,
+  `/audio`, `/media`) use `max-age=0, must-revalidate`, so the browser
+  revalidates against the ETag — a 304 (no re-download) when unchanged, fresh
+  bytes when changed.
+- `index.html` is always revalidated so deploys go live immediately.
 
 ## Credits
 
