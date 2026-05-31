@@ -1,22 +1,25 @@
-import posthog from "posthog-js";
-
 /**
  * Initialise PostHog product analytics with full client-side capture.
  *
  * Reads the project key from the build-time env var `VITE_PUBLIC_POSTHOG_KEY`
  * (and optional `VITE_PUBLIC_POSTHOG_HOST`, defaulting to PostHog US Cloud). If
- * no key is configured the call is a no-op, so local builds without analytics
- * keep working.
+ * no key is configured the call returns immediately, so local builds without
+ * analytics keep working.
  *
- * Capture is intentionally broad: autocapture (clicks/inputs/changes),
- * pageviews and pageleaves, web-performance metrics, heatmaps, and session
- * recording (session replay is additionally gated by the project's settings in
- * the PostHog dashboard).
+ * posthog-js (~195 kB) is imported dynamically so it forms its own chunk and
+ * stays out of the critical-path entry bundle; capture begins as soon as that
+ * chunk loads. Capture is intentionally broad: autocapture
+ * (clicks/inputs/changes), pageviews and pageleaves, web-performance metrics,
+ * heatmaps, and session recording (session replay is additionally gated by the
+ * project's settings in the PostHog dashboard).
+ *
+ * @returns {Promise<void>} resolves once PostHog is initialised (or skipped).
  */
-export function initAnalytics() {
+export async function initAnalytics() {
   const key = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
   if (!key) return;
 
+  const { default: posthog } = await import("posthog-js");
   posthog.init(key, {
     api_host:
       import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
