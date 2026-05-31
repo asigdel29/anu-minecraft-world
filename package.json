@@ -12,8 +12,11 @@
   "dependencies": {
     "@react-three/drei": "^9.120.4",
     "@react-three/fiber": "^8.17.10",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "howler": "^2.2.4",
     "normalize-wheel": "^1.0.1",
+    "posthog-js": "^1.376.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sass": "^1.83.0",

@@ -16,9 +16,9 @@
       ]
     },
     {
-      "source": "/(models|audio|cubemap|fonts|basis|images|media)/(.*)",
+      "source": "/(models|audio|cubemap|fonts|basis|draco|images|media)/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=604800" }
+        { "key": "Cache-Control", "value": "public, max-age=2592000" }
       ]
     },
     {
@@ -46,7 +46,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; font-src 'self'; connect-src 'self' blob: data:; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' blob: https://us-assets.i.posthog.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://us.i.posthog.com; media-src 'self'; font-src 'self'; connect-src 'self' blob: data: https://us.i.posthog.com https://us-assets.i.posthog.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
         }
       ]
     }

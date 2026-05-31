@@ -1,5 +1,7 @@
 import "./App.scss";
 import { lazy, Suspense } from "react";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import Modal from "./components/Modal/Modal";
 import AudioToggleButton from "./components/AudioToggleButton/AudioToggleButton";
@@ -21,6 +23,10 @@ function App() {
       <Suspense fallback={null}>
         <Experience />
       </Suspense>
+      {/* Vercel Web Analytics + Core Web Vitals; served same-origin from
+          /_vercel, active only on Vercel deployments. */}
+      <Analytics />
+      <SpeedInsights />
     </>
   );
 }
