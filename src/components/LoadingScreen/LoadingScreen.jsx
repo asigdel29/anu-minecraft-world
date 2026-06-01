@@ -8,6 +8,7 @@ import Button from "../Button/Button";
 
 import { playSound, playBackgroundMusic } from "../../utils/audioSystem";
 import { useAudioStore } from "../../Experience/stores/audioStore";
+import { useNavStore } from "../../Experience/stores/navStore";
 
 /**
  * Full-screen intro shown while the 3D assets load, gating entry to the scene.
@@ -25,6 +26,7 @@ const LoadingScreen = () => {
   const [isAnimationFinished, setIsAnimationFinished] = useState(false);
   const [hasStartedLoading, setHasStartedLoading] = useState(false);
   const { setIsAudioEnabled } = useAudioStore();
+  const setEnteredWorld = useNavStore((state) => state.setEnteredWorld);
 
   // Record that asset loading has begun, so an idle manager at startup (before
   // any loader registers) is not mistaken for "finished loading".
@@ -37,6 +39,7 @@ const LoadingScreen = () => {
   const handleReveal = () => {
     setIsAudioEnabled(true);
     setIsRevealed(true);
+    setEnteredWorld();
     playBackgroundMusic();
     playSound("buttonClick");
   };

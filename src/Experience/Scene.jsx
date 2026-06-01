@@ -1,7 +1,7 @@
 import { Suspense, useState } from "react";
 
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Environment } from "@react-three/drei";
 
 import House from "./models/HouseT";
@@ -16,6 +16,34 @@ import GrassSides from "./models/GrassSidesT";
 import Mobs from "./models/MobsT";
 import WallText from "./WallText";
 
+// The four project frames span the wall (world x -10.5..-7.5). On a wide screen
+// the fixed camera frames them all, but on a narrow / portrait phone the same
+// view sits too close and slightly right of centre, clipping the leftmost
+// frame. Across the project view we dolly the camera straight back (local +z)
+// so every frame fits; wider screens are untouched.
+//
+// The project framing runs progress ~0.53..0.67 (camera near x-8.4, looking
+// down -z, ~5-6.6 units from the wall) — derived from the camera curve +
+// rotation keyframes. The window is centred there so the pull-back peaks where
+// the frames are actually on screen.
+const PROJECTS_VIEW = { start: 0.5, end: 0.7 };
+
+const getProjectsDolly = (progress, size) => {
+  if (size.width > 768) return 0;
+  if (progress <= PROJECTS_VIEW.start || progress >= PROJECTS_VIEW.end) return 0;
+
+  // Portrait needs the most pull-back (its horizontal field of view is
+  // narrowest); landscape phones need only a nudge.
+  const portrait = size.height >= size.width;
+  const peak = portrait ? 2.8 : 1.4;
+  const t =
+    (progress - PROJECTS_VIEW.start) /
+    (PROJECTS_VIEW.end - PROJECTS_VIEW.start);
+
+  // Smooth 0 -> peak -> 0 bump so the pull-back eases in and out of the view.
+  return peak * Math.sin(Math.PI * t);
+};
+
 const Scene = ({
   cameraGroup,
   camera,
@@ -26,6 +54,7 @@ const Scene = ({
   mouseOffset,
 }) => {
   const [pulseIntensity, setPulseIntensity] = useState(0);
+  const size = useThree((state) => state.size);
   const [rotationBufferQuat] = useState(
     new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.12, 0.17, 0.02))
   );
@@ -187,7 +216,11 @@ const Scene = ({
         -mouseOffset.current.y,
         0.1
       );
-      camera.current.position.z = 0;
+      camera.current.position.z = THREE.MathUtils.lerp(
+        camera.current.position.z,
+        getProjectsDolly(newProgress, size),
+        0.1
+      );
 
       const targetQuaternion = getLerpedRotation(newProgress);
 
