@@ -1,0 +1,38 @@
+@use "../../index.scss" as styles;
+
+// One-tap "next" control. Only useful on touch / small screens, where swipe
+// scrolling is slow; hidden on wider viewports that have a fast mouse wheel.
+.nav-next-button {
+  display: none;
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
+
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+
+  color: white;
+  font-size: 16px;
+  text-decoration: none;
+  background-color: styles.$color-base-green;
+  border: 2px solid white;
+  box-shadow: inset 2px 2px #53d95ac0, inset -2px -2px #118316c0;
+
+  &:active {
+    background-color: styles.$color-base-dark-gray-two;
+    box-shadow: inset 2px 2px #00000060, inset -2px -2px #ffffff20;
+  }
+
+  @media (max-width: 768px), (pointer: coarse) {
+    display: flex;
+  }
+}
+
+.nav-next-arrow {
+  color: styles.$color-font-primary-yellow;
+  font-size: 18px;
+  line-height: 1;
+}
