@@ -8,11 +8,20 @@ Files: HouseT.glb [13.54MB] > C:\Users\andre\My Stuff\Blender Projects\Minecraft
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";
 
+// Multiplier applied to the house's baked material colour to lift the dark
+// interior. The scene is fully baked and unlit, so scaling the MeshBasicMaterial
+// colour (which multiplies the texture) is the only runtime lever. The house is
+// a single merged material, so this brightens interior and exterior together;
+// keep it modest so the exterior brick does not blow out. Tune against the dev
+// server.
+const INTERIOR_BRIGHTNESS = 1.4;
+
 export default function Model(props) {
   const { nodes, materials } = useGLTFWithKTX2(
     "/models/HouseT-transformed.glb"
   );
   convertMaterialsToMeshBasicMaterial(materials);
+  materials["MergedBake_Baked.016"].color.setScalar(INTERIOR_BRIGHTNESS);
 
   return (
     <group {...props} dispose={null}>
