@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 
 import * as THREE from "three";
+import { useTexture } from "@react-three/drei";
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";
@@ -47,10 +48,43 @@ const aboutZoneLayout = {
   height: 0.45,
 };
 
+// In-code photo overlays for the four project frames. The frame photos are
+// baked into the model texture (and the available Blender source is an older,
+// mismatched bake), so we cover each frame's baked picture with a plane showing
+// the correct project screenshot from /images. The planes sit just in front of
+// the frames on the links wall (z = -4.13, facing +z toward the camera) and
+// have raycasting disabled so the frames underneath still handle clicks.
+// NOTE(anu): tune size/offset against the dev server (scroll to the links view).
+const projectFrameImages = {
+  src: {
+    one: "/images/agent-canvas.webp",
+    two: "/images/matrixportfolio.webp",
+    three: "/images/coding-monkey.webp",
+    four: "/images/ai-native-city.webp",
+  },
+  // frame face centres (mirror the Project_* mesh positions below)
+  centers: {
+    one: [-10.528, 69.422, -4.13],
+    two: [-9.532, 69.422, -4.13],
+    three: [-8.536, 69.422, -4.13],
+    four: [-7.541, 69.422, -4.13],
+  },
+  // local offset of the photo from the frame centre, plus the photo size
+  offset: [0, 0.09, 0.06],
+  width: 0.62,
+  height: 0.56,
+};
+
 export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
   const { nodes, materials } = useGLTFWithKTX2("/models/DetailT-v1.glb");
   const [hoveredMesh, setHoveredMesh] = useState(null);
   const { openModal } = useModalStore();
+
+  // Correct project screenshots overlaid on the baked frame photos. Tag each as
+  // sRGB so the colours match the rest of the (flat-rendered) scene.
+  const frameTextures = useTexture(projectFrameImages.src, (loaded) => {
+    Object.values(loaded).forEach((t) => (t.colorSpace = THREE.SRGBColorSpace));
+  });
 
   const projectNames = {
     one: "Multiplayer AI Agent Canvas",
@@ -187,6 +221,28 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
         position={[-8.524, 68.356, 4.727]}
         rotation={[Math.PI / 2, 0, 0]}
       />
+
+      {/* Correct project screenshots overlaid on the baked frame photos.
+          raycast disabled so the frame meshes underneath still receive clicks. */}
+      {Object.keys(projectFrameImages.src).map((id) => {
+        const [cx, cy, cz] = projectFrameImages.centers[id];
+        const [ox, oy, oz] = projectFrameImages.offset;
+        return (
+          <mesh
+            key={id}
+            position={[cx + ox, cy + oy, cz + oz]}
+            raycast={() => null}
+          >
+            <planeGeometry
+              args={[projectFrameImages.width, projectFrameImages.height]}
+            />
+            <meshBasicMaterial
+              map={frameTextures[id]}
+              toneMapped={false}
+            />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
