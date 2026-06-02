@@ -28,6 +28,9 @@ dist-ssr
 *.glb.bak
 .vercel
 
+# Local Blender sources (large; used for re-baking model textures)
+blender files/
+
 # Local env (keys)
 .env
 .env.local

@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Environment } from "@react-three/drei";
 
 import House from "./models/HouseT";
+import SkyShell from "./models/SkyShell";
 import BackGrass from "./models/BackGrassT";
 import Detail from "./models/DetailT";
 import Extras from "./models/ExtrasT";
@@ -246,6 +247,7 @@ const Scene = ({
       />
       <Suspense fallback={null}>
         <House />
+        <SkyShell />
         <BackGrass />
         <Detail progress={scrollProgress} pulseIntensity={pulseIntensity} />
         <Extras />

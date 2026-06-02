@@ -17,7 +17,11 @@
   transform: translate(-50%, 100%);
   width: 100%;
   max-width: 700px;
-  height: 665px;
+  // Size to the content rather than a fixed height, so short panels (e.g. the
+  // Information modal) do not leave a large empty area. The cap keeps tall
+  // panels (Bookshelf, Project) on-screen; .modal-body then scrolls.
+  height: auto;
+  max-height: 80vh;
   z-index: 120;
   border: 4px solid styles.$color-base-dark-gray-four;
   transition: all 0.4s ease-in-out;
@@ -90,7 +94,9 @@
   flex: 1;
   width: 100%;
   overflow-x: hidden;
-  overflow-y: scroll;
+  // Scroll only when content exceeds the modal's max-height; short panels then
+  // show no scrollbar track.
+  overflow-y: auto;
   background-color: styles.$color-base-dark-gray-three;
   border: 6px solid styles.$color-base-dark-gray-two;
 

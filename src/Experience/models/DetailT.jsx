@@ -30,18 +30,21 @@ const aboutFrames = {
   books: { title: "Currently Reading", render: () => <Bookshelf /> },
 };
 
+// Derived from the About_Me_Pictures geometry bounds (worldX[-9.19,-7.14],
+// worldY~68.04, worldZ~4.41): four evenly spaced frames ~0.51 wide. The anchor
+// sits at the picture centre, nudged slightly toward the camera (smaller z) so
+// the invisible planes catch clicks just in front of the painted frames.
 const aboutZoneLayout = {
-  // anchor (roughly the About_Me_Pictures world position, nudged toward camera)
-  position: [-8.164, 68.3, 4.45],
-  // each plane's local x offset along the wall, plus its size
+  position: [-8.164, 68.035, 4.3],
+  // each plane's local x offset along the wall (left -> right), plus its size
   zones: [
-    { id: "about", x: -1.5 },
-    { id: "manual", x: -0.5 },
-    { id: "links", x: 0.5 },
-    { id: "books", x: 1.5 },
+    { id: "about", x: -0.77 },
+    { id: "manual", x: -0.26 },
+    { id: "links", x: 0.26 },
+    { id: "books", x: 0.77 },
   ],
-  width: 0.85,
-  height: 1.1,
+  width: 0.48,
+  height: 0.45,
 };
 
 export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
