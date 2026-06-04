@@ -31,8 +31,7 @@ export const about = {
       ],
     },
   ],
-  photos: [
-    { src: "/images/about-robot.webp", caption: "- - always building something - -" },
-    { src: "/images/about-mrrobot.webp", caption: "- - late-night hacker mode - -" },
-  ],
+  // No supplementary photos beneath the bio; the about-robot frame now lives on
+  // the about wall (see aboutFrameImages in DetailT.jsx) and mr-robot is retired.
+  photos: [],
 };

@@ -48,6 +48,55 @@ const aboutZoneLayout = {
   height: 0.45,
 };
 
+// In-code photo overlays for the four About-wall frames, mirroring the project
+// frame overlays below. The frame pictures are baked into the About_Me_Pictures
+// mesh, so we cover each with a plane showing the chosen image. The planes reuse
+// the tuned aboutZoneLayout (same group + per-zone x), nudged toward the camera.
+// The about wall faces -z, so each plane is turned to face it (rotation
+// [lean, PI, 0]) and its texture is mirrored back to upright (repeat.x = -1).
+// Raycasting is disabled so the click-zones underneath still open the modals.
+// Keyed by the modal each frame opens.
+// NOTE(anu): tune offset/width/height against the dev server (scroll to the
+// about view) until each image sits flush over its baked frame photo.
+const aboutFrameImages = {
+  src: {
+    about: "/images/me.webp",
+    manual: "/images/about-robot.webp",
+    links: "/images/newsletter.webp",
+    books: "/images/books.webp",
+  },
+  // local offset from each frame centre (toward the camera) and the photo size
+  offset: [0, 0, -0.02],
+  width: 0.44,
+  height: 0.42,
+  // the desk frames are propped leaning back; tilt the overlay to match so it
+  // reads as the frame's picture rather than a flat sticker (radians, top away
+  // from the camera). NOTE(anu): nudge against the dev server if over/under.
+  lean: 0.15,
+};
+
+// Crop a texture to "cover" the given plane aspect: fill the frame edge-to-edge
+// with no stretching and no borders, keeping the image centred (the excess on
+// the long axis is trimmed). `mirror` flips it horizontally for planes that are
+// turned to face the camera from behind (the about wall). This is what makes a
+// 4:1 banner or a 16:9 shot sit naturally in a near-square frame.
+const applyCoverFit = (texture, planeAspect, { mirror = false } = {}) => {
+  const img = texture.image;
+  const imgAspect = img && img.height ? img.width / img.height : 1;
+  let rx = 1;
+  let ry = 1;
+  if (imgAspect > planeAspect) {
+    rx = planeAspect / imgAspect; // image too wide -> trim left/right
+  } else {
+    ry = imgAspect / planeAspect; // image too tall -> trim top/bottom
+  }
+  texture.center.set(0.5, 0.5);
+  texture.offset.set(0, 0);
+  texture.repeat.set(mirror ? -rx : rx, ry);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+};
+
 // In-code photo overlays for the four project frames. The frame photos are
 // baked into the model texture (and the available Blender source is an older,
 // mismatched bake), so we cover each frame's baked picture with a plane showing
@@ -82,8 +131,19 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
 
   // Correct project screenshots overlaid on the baked frame photos. Tag each as
   // sRGB so the colours match the rest of the (flat-rendered) scene.
+  const projectFrameAspect = projectFrameImages.width / projectFrameImages.height;
   const frameTextures = useTexture(projectFrameImages.src, (loaded) => {
-    Object.values(loaded).forEach((t) => (t.colorSpace = THREE.SRGBColorSpace));
+    Object.values(loaded).forEach((t) => applyCoverFit(t, projectFrameAspect));
+  });
+
+  // Images that ride on the four about-wall frames. Cover-fit so they fill each
+  // frame without stretching, and mirror horizontally so they read upright once
+  // the planes are turned to face the -z-facing wall (see aboutFrameImages).
+  const aboutFrameAspect = aboutFrameImages.width / aboutFrameImages.height;
+  const aboutTextures = useTexture(aboutFrameImages.src, (loaded) => {
+    Object.values(loaded).forEach((t) =>
+      applyCoverFit(t, aboutFrameAspect, { mirror: true })
+    );
   });
 
   const projectNames = {
@@ -170,6 +230,29 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
             />
           </mesh>
         ))}
+
+        {/* Chosen pictures overlaid on the baked about-wall frames. Turned to
+            face the -z wall; raycast disabled so the click-zones still fire. */}
+        {aboutZoneLayout.zones.map((zone) => {
+          const [ox, oy, oz] = aboutFrameImages.offset;
+          return (
+            <mesh
+              key={`img-${zone.id}`}
+              position={[zone.x + ox, oy, oz]}
+              rotation={[aboutFrameImages.lean, Math.PI, 0]}
+              raycast={() => null}
+            >
+              <planeGeometry
+                args={[aboutFrameImages.width, aboutFrameImages.height]}
+              />
+              <meshBasicMaterial
+                map={aboutTextures[zone.id]}
+                toneMapped={false}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          );
+        })}
       </group>
       <mesh
         geometry={nodes.Project_One.geometry}
