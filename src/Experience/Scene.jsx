@@ -1,11 +1,11 @@
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Environment } from "@react-three/drei";
 
 import House from "./models/HouseT";
-import SkyShell from "./models/SkyShell";
+import SceneSky from "./SceneSky";
 import BackGrass from "./models/BackGrassT";
 import Detail from "./models/DetailT";
 import Extras from "./models/ExtrasT";
@@ -56,6 +56,7 @@ const Scene = ({
 }) => {
   const [pulseIntensity, setPulseIntensity] = useState(0);
   const size = useThree((state) => state.size);
+  const houseRef = useRef();
   const [rotationBufferQuat] = useState(
     new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.12, 0.17, 0.02))
   );
@@ -246,8 +247,10 @@ const Scene = ({
         ]}
       />
       <Suspense fallback={null}>
-        <House />
-        <SkyShell />
+        <group ref={houseRef}>
+          <House />
+        </group>
+        <SceneSky houseRef={houseRef} />
         <BackGrass />
         <Detail progress={scrollProgress} pulseIntensity={pulseIntensity} />
         <Extras />

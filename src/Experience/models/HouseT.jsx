@@ -23,6 +23,13 @@ export default function Model(props) {
   convertMaterialsToMeshBasicMaterial(materials);
   materials["MergedBake_Baked.016"].color.setScalar(INTERIOR_BRIGHTNESS);
 
+  // Render the house in the opaque queue (it is alpha-cut for the window panes,
+  // not alpha-blended). Opaque geometry writes depth and lets the GPU early-z
+  // reject the exterior shaded through the window holes; left transparent it
+  // tanks scroll framerate once the SkyShell occluder is gone. alphaTest (0.55,
+  // set during conversion) still discards the window panes.
+  materials["MergedBake_Baked.016"].transparent = false;
+
   return (
     <group {...props} dispose={null}>
       <mesh
