@@ -48,6 +48,69 @@ const aboutZoneLayout = {
   height: 0.45,
 };
 
+// In-code photo overlays for the four About-wall frames, mirroring the project
+// frame overlays below. The frame pictures are baked into the About_Me_Pictures
+// mesh, so we cover each with a plane showing the chosen image. The planes reuse
+// the tuned aboutZoneLayout (same group + per-zone x), nudged toward the camera.
+// The about wall faces -z, so each plane is turned to face it (rotation
+// [lean, PI, 0]); the texture is mapped upright (no mirror). Raycasting is
+// disabled so the click-zones underneath still open the modals.
+// Keyed by the modal each frame opens.
+// NOTE(anu): tune offset/width/height against the dev server (scroll to the
+// about view) until each image sits flush over its baked frame photo.
+const aboutFrameImages = {
+  src: {
+    about: "/images/me.webp",
+    manual: "/images/about-robot.webp",
+    links: "/images/newsletter.webp",
+    books: "/images/books.webp",
+  },
+  // local offset from each frame centre (toward the camera)
+  offset: [0, 0, -0.02],
+  // matte size — must fully cover the baked frame picture so none of it shows
+  // behind the photo. Larger than `photo` by the visible mat border.
+  matte: [0.52, 0.54],
+  // max box the whole image is contain-fitted into (centred on the matte)
+  photo: [0.42, 0.42],
+  // the desk frames are propped leaning back; tilt the overlay to match so it
+  // reads as the frame's picture rather than a flat sticker (radians, top away
+  // from the camera). NOTE(anu): nudge against the dev server if over/under.
+  lean: 0.15,
+};
+
+// Prepare an overlay texture: tag it sRGB and map it whole (no cropping, no
+// tiling, no mirroring). The photo plane is sized to the image's own aspect
+// ratio (see containSize) and matted by a backing plane, so the complete image
+// reads as a framed picture rather than a cropped, flipped sticker.
+const prepOverlayTexture = (texture) => {
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.center.set(0.5, 0.5);
+  texture.offset.set(0, 0);
+  texture.repeat.set(1, 1);
+  texture.needsUpdate = true;
+};
+
+// Fit an image fully inside a box (contain), preserving aspect ratio. Returns
+// the [width, height] for the photo plane so the whole shot shows with no crop
+// and no stretch; the matte behind it fills the leftover frame area.
+const containSize = (texture, boxW, boxH) => {
+  const img = texture && texture.image;
+  const aspect = img && img.height ? img.width / img.height : 1;
+  let w = boxW;
+  let h = boxW / aspect;
+  if (h > boxH) {
+    h = boxH;
+    w = boxH * aspect;
+  }
+  return [w, h];
+};
+
+// Matte colours behind each photo — the matte fully covers the baked frame and
+// leaves a thin mat border (matte size minus photo box), so each overlay reads
+// as a framed picture instead of a flat sticker showing the baked frame behind.
+const ABOUT_MATTE = "#1c130b";
+const PROJECT_MATTE = "#0d0d10";
+
 // In-code photo overlays for the four project frames. The frame photos are
 // baked into the model texture (and the available Blender source is an older,
 // mismatched bake), so we cover each frame's baked picture with a plane showing
@@ -69,10 +132,13 @@ const projectFrameImages = {
     three: [-8.536, 69.422, -4.13],
     four: [-7.541, 69.422, -4.13],
   },
-  // local offset of the photo from the frame centre, plus the photo size
-  offset: [0, 0.09, 0.06],
-  width: 0.62,
-  height: 0.56,
+  // local offset of the overlay from the frame centre (toward the camera)
+  offset: [0, 0.04, 0.06],
+  // matte size — fully covers the baked frame picture (taller than the old
+  // overlay so the baked sliver no longer shows below it)
+  matte: [0.66, 0.74],
+  // max box the whole screenshot is contain-fitted into (centred on the matte)
+  photo: [0.56, 0.5],
 };
 
 export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
@@ -80,10 +146,15 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
   const [hoveredMesh, setHoveredMesh] = useState(null);
   const { openModal } = useModalStore();
 
-  // Correct project screenshots overlaid on the baked frame photos. Tag each as
-  // sRGB so the colours match the rest of the (flat-rendered) scene.
+  // Correct project screenshots overlaid on the baked frame photos, tagged sRGB
+  // and shown whole (each photo plane is aspect-fitted in the JSX below).
   const frameTextures = useTexture(projectFrameImages.src, (loaded) => {
-    Object.values(loaded).forEach((t) => (t.colorSpace = THREE.SRGBColorSpace));
+    Object.values(loaded).forEach(prepOverlayTexture);
+  });
+
+  // Images that ride on the four about-wall frames, prepared the same way.
+  const aboutTextures = useTexture(aboutFrameImages.src, (loaded) => {
+    Object.values(loaded).forEach(prepOverlayTexture);
   });
 
   const projectNames = {
@@ -170,6 +241,45 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
             />
           </mesh>
         ))}
+
+        {/* Chosen pictures overlaid on the baked about-wall frames: a dark matte
+            plane with the whole photo aspect-fitted on top, so each reads as a
+            framed picture. Turned to face the -z wall; raycast disabled so the
+            click-zones still fire. */}
+        {aboutZoneLayout.zones.map((zone) => {
+          const [ox, oy, oz] = aboutFrameImages.offset;
+          const [mw, mh] = aboutFrameImages.matte;
+          const [iw, ih] = containSize(
+            aboutTextures[zone.id],
+            aboutFrameImages.photo[0],
+            aboutFrameImages.photo[1]
+          );
+          return (
+            <group
+              key={`img-${zone.id}`}
+              position={[zone.x + ox, oy, oz]}
+              rotation={[aboutFrameImages.lean, Math.PI, 0]}
+              raycast={() => null}
+            >
+              <mesh position={[0, 0, -0.002]} raycast={() => null}>
+                <planeGeometry args={[mw, mh]} />
+                <meshBasicMaterial
+                  color={ABOUT_MATTE}
+                  toneMapped={false}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+              <mesh raycast={() => null}>
+                <planeGeometry args={[iw, ih]} />
+                <meshBasicMaterial
+                  map={aboutTextures[zone.id]}
+                  toneMapped={false}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            </group>
+          );
+        })}
       </group>
       <mesh
         geometry={nodes.Project_One.geometry}
@@ -222,25 +332,33 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
         rotation={[Math.PI / 2, 0, 0]}
       />
 
-      {/* Correct project screenshots overlaid on the baked frame photos.
-          raycast disabled so the frame meshes underneath still receive clicks. */}
+      {/* Correct project screenshots overlaid on the baked frame photos: a dark
+          matte with the whole screenshot aspect-fitted on top (no crop). Raycast
+          disabled so the frame meshes underneath still receive clicks. */}
       {Object.keys(projectFrameImages.src).map((id) => {
         const [cx, cy, cz] = projectFrameImages.centers[id];
         const [ox, oy, oz] = projectFrameImages.offset;
+        const [mw, mh] = projectFrameImages.matte;
+        const [iw, ih] = containSize(
+          frameTextures[id],
+          projectFrameImages.photo[0],
+          projectFrameImages.photo[1]
+        );
         return (
-          <mesh
+          <group
             key={id}
             position={[cx + ox, cy + oy, cz + oz]}
             raycast={() => null}
           >
-            <planeGeometry
-              args={[projectFrameImages.width, projectFrameImages.height]}
-            />
-            <meshBasicMaterial
-              map={frameTextures[id]}
-              toneMapped={false}
-            />
-          </mesh>
+            <mesh position={[0, 0, -0.002]} raycast={() => null}>
+              <planeGeometry args={[mw, mh]} />
+              <meshBasicMaterial color={PROJECT_MATTE} toneMapped={false} />
+            </mesh>
+            <mesh raycast={() => null}>
+              <planeGeometry args={[iw, ih]} />
+              <meshBasicMaterial map={frameTextures[id]} toneMapped={false} />
+            </mesh>
+          </group>
         );
       })}
     </group>

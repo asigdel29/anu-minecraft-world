@@ -7,7 +7,6 @@ import Modal from "./components/Modal/Modal";
 import AudioToggleButton from "./components/AudioToggleButton/AudioToggleButton";
 import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
 import InfoButton from "./components/InfoButton/InfoButton";
-import NavButton from "./components/NavButton/NavButton";
 import ScrollHint from "./components/ScrollHint/ScrollHint";
 
 // The 3D experience pulls in three.js and React Three Fiber (the bulk of the
@@ -21,7 +20,6 @@ function App() {
       <LoadingScreen />
       <AudioToggleButton />
       <InfoButton />
-      <NavButton />
       <ScrollHint />
       <Modal />
       <Suspense fallback={null}>
