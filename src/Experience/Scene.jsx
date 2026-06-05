@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useRef } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -49,12 +49,10 @@ const Scene = ({
   cameraGroup,
   camera,
   scrollProgress,
-  setscrollProgress,
   targetScrollProgress,
   lerpFactor,
   mouseOffset,
 }) => {
-  const [pulseIntensity, setPulseIntensity] = useState(0);
   const size = useThree((state) => state.size);
   const houseRef = useRef();
 
@@ -135,8 +133,6 @@ const Scene = ({
   useFrame((state, delta) => {
     if (!camera.current || !cameraGroup.current) return;
 
-    setPulseIntensity((Math.sin(state.clock.elapsedTime * 3) + 1) / 2);
-
     // Frame-rate-independent smoothing. A plain per-frame lerp converges in a
     // fixed number of FRAMES, so when the heavy outdoor scenery drops the frame
     // rate the camera needs twice as long in REAL time to catch the scroll
@@ -152,7 +148,7 @@ const Scene = ({
     // the camera tracks it tightly instead of through the old extra position
     // and rotation lerps that stacked up into perceptible lag.
     let newProgress = THREE.MathUtils.lerp(
-      scrollProgress,
+      scrollProgress.current,
       targetScrollProgress.current,
       scrollAlpha
     );
@@ -165,7 +161,7 @@ const Scene = ({
       targetScrollProgress.current = 1;
     }
 
-    setscrollProgress(newProgress);
+    scrollProgress.current = newProgress;
 
     // Path position: driven directly from the eased progress (no second lerp).
     cameraCurve.getPoint(newProgress, basePoint);
@@ -214,10 +210,10 @@ const Scene = ({
         </group>
         <SceneSky houseRef={houseRef} />
         <BackGrass />
-        <Detail progress={scrollProgress} pulseIntensity={pulseIntensity} />
+        <Detail scrollProgress={scrollProgress} />
         <Extras />
         <ExtrasTwo />
-        <ExtrasThree progress={scrollProgress} />
+        <ExtrasThree scrollProgress={scrollProgress} />
         <FrontGrass />
         <GrassBlocks />
         <GrassSides />

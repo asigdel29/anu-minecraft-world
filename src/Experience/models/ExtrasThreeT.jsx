@@ -1,10 +1,18 @@
 import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";
 import { useAudioStore } from "../stores/audioStore";
 import { playSound } from "../../utils/audioSystem";
 
-export default function Model({ progress = 0, ...props }) {
+const doorAnimationConfig = {
+  pivotPointOne: 0.17,
+  pivotPointTwo: 0.8,
+  openAngle: Math.PI / 2,
+  closeAngle: 0,
+};
+
+export default function Model({ scrollProgress, ...props }) {
   const { nodes, materials } = useGLTFWithKTX2("/models/ExtrasThreeT-v1.glb");
   const doorRef = useRef();
   const doorState = useRef("closed");
@@ -12,46 +20,47 @@ export default function Model({ progress = 0, ...props }) {
 
   convertMaterialsToMeshBasicMaterial(materials);
 
-  const doorAnimationConfig = {
-    pivotPointOne: 0.17,
-    pivotPointTwo: 0.8,
-    openAngle: Math.PI / 2,
-    closeAngle: 0,
-  };
+  // The door is driven straight off the live scroll ref each frame: the camera
+  // crosses the doorway threshold as the scene re-renders no longer happen, so
+  // the open/close edges are detected here in useFrame rather than in render.
+  useFrame(() => {
+    if (!doorRef.current) return;
+    const progress = scrollProgress.current;
 
-  if (
-    progress >= doorAnimationConfig.pivotPointOne &&
-    progress < doorAnimationConfig.pivotPointTwo &&
-    doorState.current === "closed"
-  ) {
-    doorRef.current.rotation.z = doorAnimationConfig.openAngle;
-    doorState.current = "open";
-    if (isAudioEnabled) {
-      playSound("doorOpening");
+    if (
+      progress >= doorAnimationConfig.pivotPointOne &&
+      progress < doorAnimationConfig.pivotPointTwo &&
+      doorState.current === "closed"
+    ) {
+      doorRef.current.rotation.z = doorAnimationConfig.openAngle;
+      doorState.current = "open";
+      if (isAudioEnabled) {
+        playSound("doorOpening");
+      }
     }
-  }
 
-  if (
-    progress < doorAnimationConfig.pivotPointOne &&
-    doorState.current === "open"
-  ) {
-    doorRef.current.rotation.z = doorAnimationConfig.closeAngle;
-    doorState.current = "closed";
-    if (isAudioEnabled) {
-      playSound("doorClosing");
+    if (
+      progress < doorAnimationConfig.pivotPointOne &&
+      doorState.current === "open"
+    ) {
+      doorRef.current.rotation.z = doorAnimationConfig.closeAngle;
+      doorState.current = "closed";
+      if (isAudioEnabled) {
+        playSound("doorClosing");
+      }
     }
-  }
 
-  if (
-    progress >= doorAnimationConfig.pivotPointTwo &&
-    doorState.current === "open"
-  ) {
-    doorRef.current.rotation.z = doorAnimationConfig.closeAngle;
-    doorState.current = "closed";
-    if (isAudioEnabled) {
-      playSound("doorClosing");
+    if (
+      progress >= doorAnimationConfig.pivotPointTwo &&
+      doorState.current === "open"
+    ) {
+      doorRef.current.rotation.z = doorAnimationConfig.closeAngle;
+      doorState.current = "closed";
+      if (isAudioEnabled) {
+        playSound("doorClosing");
+      }
     }
-  }
+  });
 
   return (
     <group {...props} dispose={null}>
