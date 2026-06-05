@@ -204,21 +204,44 @@ const Scene = ({
           "/cubemap/nz.webp",
         ]}
       />
+      {/* The ten GLBs total ~54 MB. A single Suspense made the whole scene wait
+          for the slowest one; separate boundaries let each model appear as its
+          own file arrives, so the house and its interior show long before the
+          outdoor scenery finishes streaming. The sky capture still waits for the
+          full load (it is gated on useProgress in SceneSky), so the world behind
+          the windows is unaffected. House + sky stay paired so the capture sees
+          the shell it hides for that one frame. */}
       <Suspense fallback={null}>
         <group ref={houseRef}>
           <House />
         </group>
         <SceneSky houseRef={houseRef} />
-        <BackGrass />
         <Detail scrollProgress={scrollProgress} />
-        <Extras />
-        <ExtrasTwo />
-        <ExtrasThree scrollProgress={scrollProgress} />
-        <FrontGrass />
-        <GrassBlocks />
-        <GrassSides />
-        <Mobs />
         <WallText />
+      </Suspense>
+      <Suspense fallback={null}>
+        <BackGrass />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Extras />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ExtrasTwo />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ExtrasThree scrollProgress={scrollProgress} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <FrontGrass />
+      </Suspense>
+      <Suspense fallback={null}>
+        <GrassBlocks />
+      </Suspense>
+      <Suspense fallback={null}>
+        <GrassSides />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Mobs />
       </Suspense>
     </>
   );
