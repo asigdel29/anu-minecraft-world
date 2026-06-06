@@ -6,28 +6,28 @@
  * touching layout.
  */
 export const about = {
-  name: "Anubhav (Anu)",
+  name: "anubhav (anu)",
   imageUrl: "/images/me.webp",
   socials: [
-    { label: "Substack", url: "https://sigdel29.substack.com" },
-    { label: "X / Twitter", url: "https://x.com/sigdel29" },
-    { label: "LinkedIn", url: "https://www.linkedin.com/in/asigdel/" },
+    { label: "substack", url: "https://sigdel29.substack.com" },
+    { label: "x / twitter", url: "https://x.com/sigdel29" },
+    { label: "linkedin", url: "https://www.linkedin.com/in/asigdel/" },
   ],
   content: [
     {
-      header: "About Me",
+      header: "about me",
       paragraphs: [
-        "hi, i'm anu :D this is my site! I build stuff",
-        "I keep updating this site based on whatever I'm fascinated with at the moment, so it's less of a static portfolio and more of a living playground for my experiments.",
-        "Lately I've been deep in AI agents — building multiplayer agent tools and an AI-native city sim.",
+        "hi, i'm anu :d this is my site! i build stuff",
+        "i keep updating this site based on whatever i'm fascinated with at the moment, so it's less of a static portfolio and more of a living playground for my experiments.",
+        "lately i've been deep in ai agents — building multiplayer agent tools and an ai-native city sim.",
       ],
     },
     {
-      header: "What I'm into",
+      header: "what i'm into",
       paragraphs: [
-        " - Anything that would be science fiction years ago.",
-        " - Agents that can wow people.",
-        " - Multimodal hardware.",
+        " - anything that would be science fiction years ago.",
+        " - agents that can wow people.",
+        " - multimodal hardware.",
       ],
     },
   ],

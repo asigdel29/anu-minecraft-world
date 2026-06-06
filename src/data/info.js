@@ -7,10 +7,10 @@
 export const info = {
   content: [
     {
-      header: "💭 'Bout this site",
+      header: "💭 'bout this site",
       paragraphs: [
-        "hi, i'm anu :D this is my personal playground, I keep updating it based on whatever I'm fascinated with at the moment.",
-        "This immersive Minecraft world is built on the wonderful open-source folio template by *Andrew Woan* — full credit to him for the 3D world!",
+        "hi, i'm anu :d this is my personal playground, i keep updating it based on whatever i'm fascinated with at the moment.",
+        "this immersive minecraft world is built on the wonderful open-source folio template by *andrew woan* — full credit to him for the 3d world!",
       ],
     },
   ],

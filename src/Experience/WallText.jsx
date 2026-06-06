@@ -22,10 +22,10 @@ const FONT = "/fonts/Minecraft-Regular.ttf";
 // Kept in sync with `projectNames` there so the caption and its frame open the
 // same modal.
 const projectNames = {
-  one: "Multiplayer AI Agent Canvas",
+  one: "multiplayer ai agent canvas",
   two: "matrixportfolio",
   three: "coding-monkey",
-  four: "AI Native Sims City",
+  four: "ai native sims city",
 };
 
 const cfg = {
@@ -63,10 +63,10 @@ const cfg = {
   captionPadX: 0.2,
   captionH: 0.3,
   captions: [
-    { x: -10.528, text: "AI Agent Canvas", projectId: "one" },
+    { x: -10.528, text: "ai agent canvas", projectId: "one" },
     { x: -9.532, text: "matrixportfolio", projectId: "two" },
     { x: -8.536, text: "coding-monkey", projectId: "three" },
-    { x: -7.541, text: "AI Sims City", projectId: "four" },
+    { x: -7.541, text: "ai sims city", projectId: "four" },
   ],
 };
 

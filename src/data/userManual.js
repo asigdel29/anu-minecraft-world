@@ -5,30 +5,30 @@
  * renders as highlighted text.
  */
 export const userManual = {
-  intro: "welcome to what i like to call my *personal user manual* :D",
+  intro: "welcome to what i like to call my *personal user manual* :d",
   content: [
     {
-      header: "🪪 The Six-Bullet Bio",
+      header: "🪪 the six-bullet bio",
       paragraphs: [
-        " - Founding team at *Lora*.",
-        " - Lifelong techno-optimist. Previously a hedonist, more stoic now.",
-        " - Previously worked in IT consultancy, then VR / metaverse, then AI B2B SaaS.",
-        " - Immigrant from *Nepal*. Moved to the USA in 2019 for higher education.",
-        " - Background in cognitive science, computer science, and biomedical health informatics.",
-        " - Engineer, film buff, wannabe philosopher.",
+        " - founding team at *lora*.",
+        " - lifelong techno-optimist. previously a hedonist, more stoic now.",
+        " - previously worked in it consultancy, then vr / metaverse, then ai b2b saas.",
+        " - immigrant from *nepal*. moved to the usa in 2019 for higher education.",
+        " - background in cognitive science, computer science, and biomedical health informatics.",
+        " - engineer, film buff, wannabe philosopher.",
       ],
     },
     {
-      header: "🧭 Principles",
+      header: "🧭 principles",
       paragraphs: [
-        ' - *"If you\'re not aiming to be the best at what you do, you\'re ngmi."*',
-        " - Be okay with being wrong.",
-        " - Never hold back.",
+        ' - *"if you\'re not aiming to be the best at what you do, you\'re ngmi."*',
+        " - be okay with being wrong.",
+        " - never hold back.",
       ],
     },
     {
-      header: "📖 My Story",
-      paragraphs: ["Still writing this. ✍️"],
+      header: "📖 my story",
+      paragraphs: ["still writing this. ✍️"],
     },
   ],
 };
