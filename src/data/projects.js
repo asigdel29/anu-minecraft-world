@@ -14,15 +14,15 @@
  */
 export const projects = {
   one: {
-    name: "Multiplayer AI Agent Canvas",
+    name: "multiplayer ai agent canvas",
     externalLink: "https://web-xi-roan-47.vercel.app/",
     imageUrl: "/images/agent-canvas.webp",
     content: [
       {
-        header: "Multiplayer AI Agent Canvas",
+        header: "multiplayer ai agent canvas",
         paragraphs: [
-          "A multiplayer, infinite-canvas platform for running cloud AI agents, built on tldraw.",
-          "Spin up agents on a shared canvas and watch them work together in real time.",
+          "a multiplayer, infinite-canvas platform for running cloud ai agents, built on tldraw.",
+          "spin up agents on a shared canvas and watch them work together in real time.",
         ],
       },
     ],
@@ -33,9 +33,9 @@ export const projects = {
     imageUrl: "/images/matrixportfolio.webp",
     content: [
       {
-        header: "Portfolio Template for Devs",
+        header: "portfolio template for devs",
         paragraphs: [
-          "A clean, reusable portfolio template for developers — fork it and make it your own.",
+          "a clean, reusable portfolio template for developers — fork it and make it your own.",
         ],
       },
     ],
@@ -46,23 +46,23 @@ export const projects = {
     imageUrl: "/images/coding-monkey.webp",
     content: [
       {
-        header: "AI Agent Platform in Rust",
+        header: "ai agent platform in rust",
         paragraphs: [
-          "An AI agent platform built in Rust — fast, lean, and built for tinkering on agent workflows.",
+          "an ai agent platform built in rust — fast, lean, and built for tinkering on agent workflows.",
         ],
       },
     ],
   },
   four: {
-    name: "AI Native Sims City",
+    name: "ai native sims city",
     externalLink: "https://aiworld.sigdel.world/",
     imageUrl: "/images/ai-native-city.webp",
     content: [
       {
-        header: "AI Native Sims City",
+        header: "ai native sims city",
         paragraphs: [
-          "An AI-native SimCity — a living city simulation where the inhabitants are AI agents.",
-          "Watch the town come to life and see what the agents get up to.",
+          "an ai-native simcity — a living city simulation where the inhabitants are ai agents.",
+          "watch the town come to life and see what the agents get up to.",
         ],
       },
     ],
