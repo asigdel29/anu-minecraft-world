@@ -19,5 +19,8 @@ export default defineConfig({
     // three.js alone exceeds the default 500 kB advisory; raise the threshold
     // so the build log only warns on genuinely unexpected bloat.
     chunkSizeWarningLimit: 1500,
+    // Skip the per-chunk gzip-size pass to shave build time; bundle size is
+    // tracked separately when needed.
+    reportCompressedSize: false,
   },
 });
