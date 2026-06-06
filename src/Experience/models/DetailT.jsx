@@ -4,9 +4,10 @@
 // Files: DetailT.glb [2.58MB] > C:\Users\andre\Downloads\DetailT-transformed.glb [2.51MB] (3%)
 // */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import * as THREE from "three";
+import { useFrame } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 
@@ -141,10 +142,26 @@ const projectFrameImages = {
   photo: [0.56, 0.5],
 };
 
-export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
+// The five meshes whose material pulses/highlights with the camera: the about
+// picture wall and the four project frames. Each lights up while its progress
+// range is on screen, or brightens on hover. Driven imperatively in useFrame so
+// the per-frame pulse no longer forces a React re-render of the whole model.
+const ABOUT_PULSE_RANGE = [0.55, 0.65];
+const PROJECT_PULSE_RANGE = [0.32, 0.43];
+const PROJECT_IDS = ["one", "two", "three", "four"];
+
+export default function Model({ scrollProgress, ...props }) {
   const { nodes, materials } = useGLTFWithKTX2("/models/DetailT-v1.glb");
   const [hoveredMesh, setHoveredMesh] = useState(null);
   const { openModal } = useModalStore();
+
+  const aboutPicRef = useRef();
+  const projectRefs = {
+    one: useRef(),
+    two: useRef(),
+    three: useRef(),
+    four: useRef(),
+  };
 
   // Correct project screenshots overlaid on the baked frame photos, tagged sRGB
   // and shown whole (each photo plane is aspect-fitted in the JSX below).
@@ -177,26 +194,56 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
     }
   };
 
-  const baseMaterial = materials["MergedBake_Baked.010"].clone();
+  // Convert the shared baked materials to unlit basics once, then clone the
+  // converted base for the interactive variants. The clones used to be rebuilt
+  // every frame (the scene re-rendered sixty times a second); memoising them
+  // removes that churn while keeping the look the scene settled into.
+  const { baseMaterial, brightHoveredMaterial, pulsingMaterial } = useMemo(() => {
+    convertMaterialsToMeshBasicMaterial(materials, 0);
+    const baked = materials["MergedBake_Baked.010"];
+    const bright = baked.clone();
+    bright.color = new THREE.Color(2.5, 2.5, 2.5);
+    return {
+      baseMaterial: baked.clone(),
+      brightHoveredMaterial: bright,
+      pulsingMaterial: baked.clone(),
+    };
+  }, [materials]);
 
-  const brightHoveredMaterial = materials["MergedBake_Baked.010"].clone();
-  brightHoveredMaterial.color = new THREE.Color(2.5, 2.5, 2.5);
-
-  const pulsingMaterial = materials["MergedBake_Baked.010"].clone();
-
-  convertMaterialsToMeshBasicMaterial(materials, 0);
-
-  const getMaterial = (elementID, progressRange) => {
+  // Pick the material for one interactive mesh: hover wins, then the pulse while
+  // its range is on screen, else the plain base.
+  const pickMaterial = (elementID, range, progress, pulse) => {
     if (hoveredMesh === elementID) return brightHoveredMaterial;
-
-    const [min, max] = progressRange;
+    const [min, max] = range;
     if (progress >= min && progress <= max) {
-      const pulseColor = 1 + pulseIntensity * 1.5;
+      const pulseColor = 1 + pulse * 1.5;
       pulsingMaterial.color.setRGB(pulseColor, pulseColor, pulseColor);
       return pulsingMaterial;
     }
     return baseMaterial;
   };
+
+  // Apply the highlight materials each frame from the live scroll ref + clock,
+  // instead of recomputing them through a per-frame React render.
+  useFrame((state) => {
+    const progress = scrollProgress.current;
+    const pulse = (Math.sin(state.clock.elapsedTime * 3) + 1) / 2;
+
+    if (aboutPicRef.current) {
+      aboutPicRef.current.material = pickMaterial(
+        "about",
+        ABOUT_PULSE_RANGE,
+        progress,
+        pulse
+      );
+    }
+    for (const id of PROJECT_IDS) {
+      const ref = projectRefs[id].current;
+      if (ref) {
+        ref.material = pickMaterial(id, PROJECT_PULSE_RANGE, progress, pulse);
+      }
+    }
+  });
 
   useEffect(() => {
     document.body.style.cursor = hoveredMesh ? "pointer" : "auto";
@@ -213,8 +260,9 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
       {/* Static visual: the baked picture wall. Keeps its pulse cue while the
           about area is in view; interaction is handled by the click-zones. */}
       <mesh
+        ref={aboutPicRef}
         geometry={nodes.About_Me_Pictures.geometry}
-        material={getMaterial("about", [0.55, 0.65])}
+        material={baseMaterial}
         position={[-8.164, 68.036, 4.408]}
         rotation={[Math.PI / 2, 0, 0]}
       />
@@ -282,8 +330,9 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
         })}
       </group>
       <mesh
+        ref={projectRefs.one}
         geometry={nodes.Project_One.geometry}
-        material={getMaterial("one", [0.32, 0.43])}
+        material={baseMaterial}
         position={[-10.528, 69.422, -4.13]}
         rotation={[Math.PI / 2, 0, 0]}
         onPointerOver={() => setHoveredMesh("one")}
@@ -293,8 +342,9 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
         }}
       />
       <mesh
+        ref={projectRefs.two}
         geometry={nodes.Project_Two.geometry}
-        material={getMaterial("two", [0.32, 0.43])}
+        material={baseMaterial}
         position={[-9.532, 69.422, -4.13]}
         rotation={[Math.PI / 2, 0, 0]}
         onPointerOver={() => setHoveredMesh("two")}
@@ -304,8 +354,9 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
         }}
       />
       <mesh
+        ref={projectRefs.three}
         geometry={nodes.Project_Three.geometry}
-        material={getMaterial("three", [0.32, 0.43])}
+        material={baseMaterial}
         position={[-8.536, 69.422, -4.13]}
         rotation={[Math.PI / 2, 0, 0]}
         onPointerOver={() => setHoveredMesh("three")}
@@ -315,8 +366,9 @@ export default function Model({ progress = 0, pulseIntensity = 0, ...props }) {
         }}
       />
       <mesh
+        ref={projectRefs.four}
         geometry={nodes.Project_Four.geometry}
-        material={getMaterial("four", [0.32, 0.43])}
+        material={baseMaterial}
         position={[-7.541, 69.422, -4.13]}
         rotation={[Math.PI / 2, 0, 0]}
         onPointerOver={() => setHoveredMesh("four")}

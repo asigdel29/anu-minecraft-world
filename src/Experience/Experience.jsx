@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
@@ -38,7 +38,11 @@ const snapToNearestStop = (target) => {
 const Experience = () => {
   const cameraGroup = useRef();
   const camera = useRef();
-  const [scrollProgress, setscrollProgress] = useState(0);
+  // Live scroll progress is a ref, not React state: it changes every frame, and
+  // lifting it into state forced a full re-render of the scene (and DetailT's
+  // material clones) sixty times a second. The models that need the live value
+  // read this ref inside their own useFrame instead.
+  const scrollProgress = useRef(0);
   const targetScrollProgress = useRef(0);
   const scrollSpeed = 0.005;
   // Single smoothing stage now lives here (Scene drives the camera straight
@@ -143,12 +147,16 @@ const Experience = () => {
 
   return (
     <>
-      <Canvas flat={true} eventSource={document.getElementById("root")}>
+      <Canvas
+        flat={true}
+        dpr={[1, 2]}
+        gl={{ powerPreference: "high-performance" }}
+        eventSource={document.getElementById("root")}
+      >
         <Scene
           cameraGroup={cameraGroup}
           camera={camera}
           scrollProgress={scrollProgress}
-          setscrollProgress={setscrollProgress}
           targetScrollProgress={targetScrollProgress}
           lerpFactor={lerpFactor}
           mouseOffset={mouseOffset}

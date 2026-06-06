@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useRef } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -49,12 +49,10 @@ const Scene = ({
   cameraGroup,
   camera,
   scrollProgress,
-  setscrollProgress,
   targetScrollProgress,
   lerpFactor,
   mouseOffset,
 }) => {
-  const [pulseIntensity, setPulseIntensity] = useState(0);
   const size = useThree((state) => state.size);
   const houseRef = useRef();
 
@@ -135,8 +133,6 @@ const Scene = ({
   useFrame((state, delta) => {
     if (!camera.current || !cameraGroup.current) return;
 
-    setPulseIntensity((Math.sin(state.clock.elapsedTime * 3) + 1) / 2);
-
     // Frame-rate-independent smoothing. A plain per-frame lerp converges in a
     // fixed number of FRAMES, so when the heavy outdoor scenery drops the frame
     // rate the camera needs twice as long in REAL time to catch the scroll
@@ -152,7 +148,7 @@ const Scene = ({
     // the camera tracks it tightly instead of through the old extra position
     // and rotation lerps that stacked up into perceptible lag.
     let newProgress = THREE.MathUtils.lerp(
-      scrollProgress,
+      scrollProgress.current,
       targetScrollProgress.current,
       scrollAlpha
     );
@@ -165,7 +161,7 @@ const Scene = ({
       targetScrollProgress.current = 1;
     }
 
-    setscrollProgress(newProgress);
+    scrollProgress.current = newProgress;
 
     // Path position: driven directly from the eased progress (no second lerp).
     cameraCurve.getPoint(newProgress, basePoint);
@@ -208,21 +204,44 @@ const Scene = ({
           "/cubemap/nz.webp",
         ]}
       />
+      {/* The ten GLBs total ~54 MB. A single Suspense made the whole scene wait
+          for the slowest one; separate boundaries let each model appear as its
+          own file arrives, so the house and its interior show long before the
+          outdoor scenery finishes streaming. The sky capture still waits for the
+          full load (it is gated on useProgress in SceneSky), so the world behind
+          the windows is unaffected. House + sky stay paired so the capture sees
+          the shell it hides for that one frame. */}
       <Suspense fallback={null}>
         <group ref={houseRef}>
           <House />
         </group>
         <SceneSky houseRef={houseRef} />
-        <BackGrass />
-        <Detail progress={scrollProgress} pulseIntensity={pulseIntensity} />
-        <Extras />
-        <ExtrasTwo />
-        <ExtrasThree progress={scrollProgress} />
-        <FrontGrass />
-        <GrassBlocks />
-        <GrassSides />
-        <Mobs />
+        <Detail scrollProgress={scrollProgress} />
         <WallText />
+      </Suspense>
+      <Suspense fallback={null}>
+        <BackGrass />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Extras />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ExtrasTwo />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ExtrasThree scrollProgress={scrollProgress} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <FrontGrass />
+      </Suspense>
+      <Suspense fallback={null}>
+        <GrassBlocks />
+      </Suspense>
+      <Suspense fallback={null}>
+        <GrassSides />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Mobs />
       </Suspense>
     </>
   );
