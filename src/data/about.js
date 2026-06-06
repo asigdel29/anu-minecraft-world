@@ -17,17 +17,17 @@ export const about = {
     {
       header: "About Me",
       paragraphs: [
-        "hi, i'm anu :D this is my site! I'm a creator and tinkerer who loves building things at the intersection of art and tech.",
+        "hi, i'm anu :D this is my site! I build stuff",
         "I keep updating this site based on whatever I'm fascinated with at the moment, so it's less of a static portfolio and more of a living playground for my experiments.",
-        "Lately I've been deep in AI agents — building multiplayer agent tools and an AI-native city sim. Poke around, and stay tuned for more! ✨",
+        "Lately I've been deep in AI agents — building multiplayer agent tools and an AI-native city sim.",
       ],
     },
     {
       header: "What I'm into",
       paragraphs: [
-        " - Building multiplayer tools for running cloud AI agents on an infinite canvas.",
-        " - An AI-native city sim where the citizens are agents.",
-        " - Tinkering with agent harnesses and shipping whatever I'm curious about.",
+        " - Anything that would be science fiction years ago.",
+        " - Agents that can wow people.",
+        " - Multimodal hardware.",
       ],
     },
   ],
