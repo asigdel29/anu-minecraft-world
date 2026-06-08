@@ -15,7 +15,7 @@
 export const projects = {
   one: {
     name: "multiplayer ai agent canvas",
-    externalLink: "https://web-xi-roan-47.vercel.app/",
+    externalLink: "https://agents.sigdel.world/",
     imageUrl: "/images/agent-canvas.webp",
     content: [
       {
