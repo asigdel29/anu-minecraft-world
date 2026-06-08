@@ -6,8 +6,6 @@ world to explore projects, an about page, a reading shelf, and a set of links.
 
 Live: [sigdel.world](https://sigdel.world)
 
-![Home page screenshot](public/media/og/og-image.webp?raw=true "Home page screenshot")
-
 ## Tech
 
 - **React + Vite** single-page app (static; no backend)
