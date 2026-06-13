@@ -8,11 +8,7 @@ import House from "./models/HouseT";
 import SceneSky from "./SceneSky";
 import BackGrass from "./models/BackGrassT";
 import Detail from "./models/DetailT";
-import Extras from "./models/ExtrasT";
-import ExtrasTwo from "./models/ExtrasTwoT";
-import ExtrasThree from "./models/ExtrasThreeT";
 import FrontGrass from "./models/FrontGrassT";
-import GrassBlocks from "./models/GrassBlocksT";
 import GrassSides from "./models/GrassSidesT";
 import Mobs from "./models/MobsT";
 
@@ -224,21 +220,17 @@ const Scene = ({
       <Suspense fallback={null}>
         <BackGrass />
       </Suspense>
-      <Suspense fallback={null}>
-        <Extras />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ExtrasTwo />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ExtrasThree scrollProgress={scrollProgress} />
-      </Suspense>
+      {/* The Extras / ExtrasTwo / ExtrasThree prop blobs (furniture and the old
+          door mechanism) were baked for the previous single-room house. Inside
+          the new multi-storey house they sit at the wrong places and block the
+          interior and doorway view, so they are no longer rendered — the new
+          house GLB carries its own door, trim, garden, and lamps. */}
       <Suspense fallback={null}>
         <FrontGrass />
       </Suspense>
-      <Suspense fallback={null}>
-        <GrassBlocks />
-      </Suspense>
+      {/* GrassBlocks (the dense grass tufts) crowded the new doorway and the
+          camera clipped through them on entry; the house now has its own garden
+          at the entrance, so the tufts are dropped. */}
       <Suspense fallback={null}>
         <GrassSides />
       </Suspense>

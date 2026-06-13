@@ -30,7 +30,7 @@ import Bookshelf from "../../components/Bookshelf/Bookshelf";
 
 // Interior back-wall depth (world z, just in front of each storey's back wall,
 // facing the camera) and eye-height per floor. Tuned against the dev server.
-const WALL_Z = { ground: -4.4, middle: -3.6, top: -2.8 };
+const WALL_Z = { ground: -3.3, middle: -2.6, top: -1.9 };
 const FLOOR_Y = { ground: 67.5, middle: 73.0, top: 78.4 };
 
 const aboutFrames = {
@@ -60,7 +60,7 @@ const FRAMES = [
   { id: "books", kind: "about", floor: "top", x: -3.5, img: "/images/books.webp" },
 ];
 
-const PANEL = { matte: [2.0, 1.5], photo: [1.7, 1.2], click: [2.0, 1.5] };
+const PANEL = { matte: [2.6, 1.9], photo: [2.25, 1.55], click: [2.6, 1.9] };
 const ABOUT_MATTE = "#1c130b";
 const PROJECT_MATTE = "#0d0d10";
 
