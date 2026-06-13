@@ -7,11 +7,13 @@ import Scene from "./Scene";
 import { useModalStore } from "./stores/modalStore";
 import normalizeWheel from "normalize-wheel";
 
-// Curated stops along the camera path (intro, house approach, the project wall,
-// the bookshelf, the links sign, ...). Values map to the rotation keyframes in
-// Scene.jsx. On touch we snap to the nearest of these when a swipe ends, so
-// every gesture settles on a framed view instead of drifting past content.
-const NAV_STOPS = [0, 0.14, 0.24, 0.365, 0.42, 0.5, 0.62, 0.715, 0.85];
+// Curated stops along the camera path, one per framed floor as the camera
+// climbs the house: intro/approach, ground floor (about), middle floor
+// (projects), top floor (books + links), and the rooftop terrace. Values map
+// to the rotation keyframes in Scene.jsx. On touch we snap to the nearest of
+// these when a swipe ends, so every gesture settles on a framed view instead
+// of drifting past content. The exterior fly-back (>0.643) carries no stop.
+const NAV_STOPS = [0, 0.21, 0.357, 0.5, 0.643];
 
 // Snap a free-scrolled progress value to the closest stop, moving the *short*
 // way around the looped path (so snapping near the end rolls forward to 0/1

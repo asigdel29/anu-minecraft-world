@@ -17,17 +17,13 @@ import GrassSides from "./models/GrassSidesT";
 import Mobs from "./models/MobsT";
 import WallText from "./WallText";
 
-// The four project frames span the wall (world x -10.5..-7.5). On a wide screen
-// the fixed camera frames them all, but on a narrow / portrait phone the same
-// view sits too close and slightly right of centre, clipping the leftmost
-// frame. Across the project view we dolly the camera straight back (local +z)
-// so every frame fits; wider screens are untouched.
-//
-// The project framing runs progress ~0.53..0.67 (camera near x-8.4, looking
-// down -z, ~5-6.6 units from the wall) — derived from the camera curve +
-// rotation keyframes. The window is centred there so the pull-back peaks where
-// the frames are actually on screen.
-const PROJECTS_VIEW = { start: 0.5, end: 0.7 };
+// The project frames live on the middle floor's front face. On a wide screen
+// the climbing camera frames them all, but on a narrow / portrait phone the
+// same view sits too close to fit every frame. Across the middle-floor view we
+// dolly the camera straight back (local +z) so they all fit; wider screens are
+// untouched. The window is centred on the middle-floor stop (~0.357) so the
+// pull-back peaks where the frames are actually on screen.
+const PROJECTS_VIEW = { start: 0.3, end: 0.42 };
 
 const getProjectsDolly = (progress, size) => {
   if (size.width > 768) return 0;
@@ -65,22 +61,27 @@ const Scene = ({
     () =>
       new THREE.CatmullRomCurve3(
         [
-          new THREE.Vector3(2, 65, 47.5),
-      new THREE.Vector3(1.4, 65, 39),
-      new THREE.Vector3(-2, 70, 17),
-      new THREE.Vector3(-2.6, 68.5, 4.8),
-      new THREE.Vector3(-2.45, 67.9, 0),
-      new THREE.Vector3(-3.42, 68.9, 0.145),
-      new THREE.Vector3(-8.05, 69.36, -0.875),
-      new THREE.Vector3(-10.05, 69.36, -0.88),
-      new THREE.Vector3(-7.148, 69.22, 0.37),
-      new THREE.Vector3(-9, 69.2, 1.22),
-      new THREE.Vector3(-7.8, 68.72, 3.04),
-      new THREE.Vector3(-8.01, 69.97, -1.72),
-      new THREE.Vector3(-3, 68.21, 0.308), //close door
-      new THREE.Vector3(-2.4, 68.47, 7.1),
-      new THREE.Vector3(-2, 70, 17),
-      new THREE.Vector3(1.4, 65, 39),
+          // The path ascends the front (world +Z) face of the three-storey
+          // house: a far approach, then a near-vertical climb past each floor
+          // (ground -> middle -> top -> rooftop), then an exterior fly-back
+          // that descends to the start so the closed loop reads as a graceful
+          // return. Camera X holds near the house centre (world x -5.5) and Z
+          // sits a few units in front of the balconies; only Y rises. Floor
+          // heights: ground ~67, middle ~72, top ~77, rooftop ~82.
+          new THREE.Vector3(2, 65, 47.5), // far approach
+          new THREE.Vector3(-2, 65.5, 36),
+          new THREE.Vector3(-5.5, 66.5, 27),
+          new THREE.Vector3(-5.5, 68.0, 23), // ground floor (about)
+          new THREE.Vector3(-5.5, 70.0, 22.5),
+          new THREE.Vector3(-5.5, 72.5, 22), // middle floor (projects)
+          new THREE.Vector3(-5.5, 75.0, 21.5),
+          new THREE.Vector3(-5.5, 77.0, 21), // top floor (books + links)
+          new THREE.Vector3(-5.5, 80.0, 21),
+          new THREE.Vector3(-5.0, 83.0, 22), // rooftop terrace hero
+          new THREE.Vector3(-3, 85, 27),
+          new THREE.Vector3(5, 80, 34), // exterior fly-back
+          new THREE.Vector3(6, 70, 42),
+          new THREE.Vector3(3, 66, 47),
         ],
         true
       ),
@@ -90,20 +91,20 @@ const Scene = ({
   // Rotation keyframes, pre-baked into quaternions once (eulers are only ever
   // needed as quats for slerp). Scratch Vector3 reused by the path lookup.
   const rotationQuats = useMemo(() => {
+    // The camera faces the house (world -Z) throughout the climb; only pitch
+    // changes — tilted up while low and close, levelling out as it rises, then
+    // looking out and down from the rooftop. The fly-back yaws away as it
+    // descends. Pitch up is +X here (the camera group's forward is -Z).
     const targets = [
-      { progress: 0, rotation: [-0.12, 0.17, 0.02] },
-      { progress: 0.14, rotation: [-0.11, 0.003, 0.0] },
-      { progress: 0.2, rotation: [-0.11, 0.003, 0.0] },
-      { progress: 0.24, rotation: [0.173, 1.042, -0.15] },
-      { progress: 0.365, rotation: [0.023, 0.024, -0.001] },
-      { progress: 0.42, rotation: [0.177, 0.972, -0.147] },
-      { progress: 0.5, rotation: [-2.725, 1.02, 2.782] },
-      { progress: 0.56, rotation: [-2.9, -0.069, -3.125] },
-      { progress: 0.62, rotation: [-2.76, 0.21, 3.06] },
-      { progress: 0.715, rotation: [-0.467, -0.681, -0.308] },
-      { progress: 0.735, rotation: [-0.043, 0.012, 0.0005] },
-      { progress: 0.85, rotation: [-0.043, 0.012, 0.0005] },
-      { progress: 1, rotation: [-0.12, 0.17, 0.02] },
+      { progress: 0, rotation: [-0.08, 0.1, 0.0] }, // approach
+      { progress: 0.1, rotation: [0.02, 0.03, 0.0] },
+      { progress: 0.21, rotation: [0.09, 0.0, 0.0] }, // ground, slight up
+      { progress: 0.357, rotation: [0.05, 0.0, 0.0] }, // middle
+      { progress: 0.5, rotation: [0.0, 0.0, 0.0] }, // top, level
+      { progress: 0.643, rotation: [-0.14, 0.0, 0.0] }, // rooftop, look out
+      { progress: 0.72, rotation: [-0.18, 0.3, 0.0] }, // pull out
+      { progress: 0.85, rotation: [-0.04, 0.22, 0.0] }, // fly-back descend
+      { progress: 1, rotation: [-0.08, 0.1, 0.0] },
     ];
     return targets.map(({ progress, rotation }) => ({
       progress,
