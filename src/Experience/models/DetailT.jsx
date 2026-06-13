@@ -4,10 +4,9 @@
 // Files: DetailT.glb [2.58MB] > C:\Users\andre\Downloads\DetailT-transformed.glb [2.51MB] (3%)
 // */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 
@@ -20,11 +19,20 @@ import UserManual from "../../components/UserManual/UserManual";
 import RandomLinks from "../../components/RandomLinks/RandomLinks";
 import Bookshelf from "../../components/Bookshelf/Bookshelf";
 
-// The four clickable frames on the About wall. The single baked
-// About_Me_Pictures mesh stays as the visual; these invisible planes sit over
-// each painted frame and open their own modal.
-// NOTE(anu): tune `aboutZoneLayout` against the running dev server until the
-// planes line up with the four frames on the wall (scroll to the about view).
+// The visitor climbs the interior atrium, so content is distributed across the
+// interior back wall of each floor and faces the rising camera (+z): the ground
+// floor introduces (about + manual), the middle floor shows the four projects,
+// and the top floor carries the links + reading list. Each item is a
+// self-contained framed panel — a dark matte with the image aspect-fitted on
+// top, plus an invisible click-zone. The old single-room baked meshes
+// (furniture + frames) are not rendered; the interior is the brick atrium plus
+// these panels.
+
+// Interior back-wall depth (world z, just in front of each storey's back wall,
+// facing the camera) and eye-height per floor. Tuned against the dev server.
+const WALL_Z = { ground: -4.4, middle: -3.6, top: -2.8 };
+const FLOOR_Y = { ground: 67.5, middle: 73.0, top: 78.4 };
+
 const aboutFrames = {
   about: { title: "About me", render: () => <About /> },
   manual: { title: "User Manual", render: () => <UserManual /> },
@@ -32,57 +40,30 @@ const aboutFrames = {
   books: { title: "Currently Reading", render: () => <Bookshelf /> },
 };
 
-// Derived from the About_Me_Pictures geometry bounds (worldX[-9.19,-7.14],
-// worldY~68.04, worldZ~4.41): four evenly spaced frames ~0.51 wide. The anchor
-// sits at the picture centre, nudged slightly toward the camera (smaller z) so
-// the invisible planes catch clicks just in front of the painted frames.
-const aboutZoneLayout = {
-  position: [-8.164, 68.035, 4.3],
-  // each plane's local x offset along the wall (left -> right), plus its size
-  zones: [
-    { id: "about", x: -0.77 },
-    { id: "manual", x: -0.26 },
-    { id: "links", x: 0.26 },
-    { id: "books", x: 0.77 },
-  ],
-  width: 0.48,
-  height: 0.45,
+const projectNames = {
+  one: "Multiplayer AI Agent Canvas",
+  two: "matrixportfolio",
+  three: "coding-monkey",
+  four: "AI Native Sims City",
 };
 
-// In-code photo overlays for the four About-wall frames, mirroring the project
-// frame overlays below. The frame pictures are baked into the About_Me_Pictures
-// mesh, so we cover each with a plane showing the chosen image. The planes reuse
-// the tuned aboutZoneLayout (same group + per-zone x), nudged toward the camera.
-// The about wall faces -z, so each plane is turned to face it (rotation
-// [lean, PI, 0]); the texture is mapped upright (no mirror). Raycasting is
-// disabled so the click-zones underneath still open the modals.
-// Keyed by the modal each frame opens.
-// NOTE(anu): tune offset/width/height against the dev server (scroll to the
-// about view) until each image sits flush over its baked frame photo.
-const aboutFrameImages = {
-  src: {
-    about: "/images/me.webp",
-    manual: "/images/about-robot.webp",
-    links: "/images/newsletter.webp",
-    books: "/images/books.webp",
-  },
-  // local offset from each frame centre (toward the camera)
-  offset: [0, 0, -0.02],
-  // matte size — must fully cover the baked frame picture so none of it shows
-  // behind the photo. Larger than `photo` by the visible mat border.
-  matte: [0.52, 0.54],
-  // max box the whole image is contain-fitted into (centred on the matte)
-  photo: [0.42, 0.42],
-  // the desk frames are propped leaning back; tilt the overlay to match so it
-  // reads as the frame's picture rather than a flat sticker (radians, top away
-  // from the camera). NOTE(anu): nudge against the dev server if over/under.
-  lean: 0.15,
-};
+// Every framed panel, placed on its floor's interior back wall. `x` spreads the
+// panels along the wall, centred near the camera column (world x -5.5).
+const FRAMES = [
+  { id: "about", kind: "about", floor: "ground", x: -8.0, img: "/images/me.webp" },
+  { id: "manual", kind: "about", floor: "ground", x: -3.0, img: "/images/about-robot.webp" },
+  { id: "one", kind: "project", floor: "middle", x: -9.6, img: "/images/agent-canvas.webp" },
+  { id: "two", kind: "project", floor: "middle", x: -6.7, img: "/images/matrixportfolio.webp" },
+  { id: "three", kind: "project", floor: "middle", x: -3.8, img: "/images/coding-monkey.webp" },
+  { id: "four", kind: "project", floor: "middle", x: -0.9, img: "/images/ai-native-city.webp" },
+  { id: "links", kind: "about", floor: "top", x: -7.5, img: "/images/newsletter.webp" },
+  { id: "books", kind: "about", floor: "top", x: -3.5, img: "/images/books.webp" },
+];
 
-// Prepare an overlay texture: tag it sRGB and map it whole (no cropping, no
-// tiling, no mirroring). The photo plane is sized to the image's own aspect
-// ratio (see containSize) and matted by a backing plane, so the complete image
-// reads as a framed picture rather than a cropped, flipped sticker.
+const PANEL = { matte: [2.0, 1.5], photo: [1.7, 1.2], click: [2.0, 1.5] };
+const ABOUT_MATTE = "#1c130b";
+const PROJECT_MATTE = "#0d0d10";
+
 const prepOverlayTexture = (texture) => {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.center.set(0.5, 0.5);
@@ -91,9 +72,7 @@ const prepOverlayTexture = (texture) => {
   texture.needsUpdate = true;
 };
 
-// Fit an image fully inside a box (contain), preserving aspect ratio. Returns
-// the [width, height] for the photo plane so the whole shot shows with no crop
-// and no stretch; the matte behind it fills the leftover frame area.
+// Fit an image fully inside a box (contain), preserving aspect ratio.
 const containSize = (texture, boxW, boxH) => {
   const img = texture && texture.image;
   const aspect = img && img.height ? img.width / img.height : 1;
@@ -106,309 +85,79 @@ const containSize = (texture, boxW, boxH) => {
   return [w, h];
 };
 
-// Matte colours behind each photo — the matte fully covers the baked frame and
-// leaves a thin mat border (matte size minus photo box), so each overlay reads
-// as a framed picture instead of a flat sticker showing the baked frame behind.
-const ABOUT_MATTE = "#1c130b";
-const PROJECT_MATTE = "#0d0d10";
-
-// In-code photo overlays for the four project frames. The frame photos are
-// baked into the model texture (and the available Blender source is an older,
-// mismatched bake), so we cover each frame's baked picture with a plane showing
-// the correct project screenshot from /images. The planes sit just in front of
-// the frames on the links wall (z = -4.13, facing +z toward the camera) and
-// have raycasting disabled so the frames underneath still handle clicks.
-// NOTE(anu): tune size/offset against the dev server (scroll to the links view).
-const projectFrameImages = {
-  src: {
-    one: "/images/agent-canvas.webp",
-    two: "/images/matrixportfolio.webp",
-    three: "/images/coding-monkey.webp",
-    four: "/images/ai-native-city.webp",
-  },
-  // frame face centres (mirror the Project_* mesh positions below)
-  centers: {
-    one: [-10.528, 69.422, -4.13],
-    two: [-9.532, 69.422, -4.13],
-    three: [-8.536, 69.422, -4.13],
-    four: [-7.541, 69.422, -4.13],
-  },
-  // local offset of the overlay from the frame centre (toward the camera)
-  offset: [0, 0.04, 0.06],
-  // matte size — fully covers the baked frame picture (taller than the old
-  // overlay so the baked sliver no longer shows below it)
-  matte: [0.66, 0.74],
-  // max box the whole screenshot is contain-fitted into (centred on the matte)
-  photo: [0.56, 0.5],
-};
-
-// The five meshes whose material pulses/highlights with the camera: the about
-// picture wall and the four project frames. Each lights up while its progress
-// range is on screen, or brightens on hover. Driven imperatively in useFrame so
-// the per-frame pulse no longer forces a React re-render of the whole model.
-const ABOUT_PULSE_RANGE = [0.55, 0.65];
-const PROJECT_PULSE_RANGE = [0.32, 0.43];
-const PROJECT_IDS = ["one", "two", "three", "four"];
-
 export default function Model({ scrollProgress, ...props }) {
-  const { nodes, materials } = useGLTFWithKTX2("/models/DetailT-v1.glb");
-  const [hoveredMesh, setHoveredMesh] = useState(null);
+  // The GLB still loads (its materials warm the loader cache), but the old baked
+  // interior meshes are no longer rendered.
+  const { materials } = useGLTFWithKTX2("/models/DetailT-v1.glb");
+  const [hoveredFrame, setHoveredFrame] = useState(null);
   const { openModal } = useModalStore();
 
-  const aboutPicRef = useRef();
-  const projectRefs = {
-    one: useRef(),
-    two: useRef(),
-    three: useRef(),
-    four: useRef(),
-  };
+  useMemo(() => convertMaterialsToMeshBasicMaterial(materials, 0), [materials]);
 
-  // Correct project screenshots overlaid on the baked frame photos, tagged sRGB
-  // and shown whole (each photo plane is aspect-fitted in the JSX below).
-  const frameTextures = useTexture(projectFrameImages.src, (loaded) => {
+  const srcByID = useMemo(
+    () => Object.fromEntries(FRAMES.map((f) => [f.id, f.img])),
+    []
+  );
+  const textures = useTexture(srcByID, (loaded) => {
     Object.values(loaded).forEach(prepOverlayTexture);
   });
 
-  // Images that ride on the four about-wall frames, prepared the same way.
-  const aboutTextures = useTexture(aboutFrameImages.src, (loaded) => {
-    Object.values(loaded).forEach(prepOverlayTexture);
-  });
-
-  const projectNames = {
-    one: "Multiplayer AI Agent Canvas",
-    two: "matrixportfolio",
-    three: "coding-monkey",
-    four: "AI Native Sims City",
-  };
-
-  const handleClick = (elementID) => {
-    const frame = aboutFrames[elementID];
-    if (frame) {
-      openModal(frame.title, frame.render(), elementID);
+  const handleClick = (frame) => {
+    if (frame.kind === "about") {
+      const modal = aboutFrames[frame.id];
+      openModal(modal.title, modal.render(), frame.id);
     } else {
       openModal(
-        projectNames[elementID],
-        <Project projectID={elementID} />,
-        elementID
+        projectNames[frame.id],
+        <Project projectID={frame.id} />,
+        frame.id
       );
     }
   };
-
-  // Convert the shared baked materials to unlit basics once, then clone the
-  // converted base for the interactive variants. The clones used to be rebuilt
-  // every frame (the scene re-rendered sixty times a second); memoising them
-  // removes that churn while keeping the look the scene settled into.
-  const { baseMaterial, brightHoveredMaterial, pulsingMaterial } = useMemo(() => {
-    convertMaterialsToMeshBasicMaterial(materials, 0);
-    const baked = materials["MergedBake_Baked.010"];
-    const bright = baked.clone();
-    bright.color = new THREE.Color(2.5, 2.5, 2.5);
-    return {
-      baseMaterial: baked.clone(),
-      brightHoveredMaterial: bright,
-      pulsingMaterial: baked.clone(),
-    };
-  }, [materials]);
-
-  // Pick the material for one interactive mesh: hover wins, then the pulse while
-  // its range is on screen, else the plain base.
-  const pickMaterial = (elementID, range, progress, pulse) => {
-    if (hoveredMesh === elementID) return brightHoveredMaterial;
-    const [min, max] = range;
-    if (progress >= min && progress <= max) {
-      const pulseColor = 1 + pulse * 1.5;
-      pulsingMaterial.color.setRGB(pulseColor, pulseColor, pulseColor);
-      return pulsingMaterial;
-    }
-    return baseMaterial;
-  };
-
-  // Apply the highlight materials each frame from the live scroll ref + clock,
-  // instead of recomputing them through a per-frame React render.
-  useFrame((state) => {
-    const progress = scrollProgress.current;
-    const pulse = (Math.sin(state.clock.elapsedTime * 3) + 1) / 2;
-
-    if (aboutPicRef.current) {
-      aboutPicRef.current.material = pickMaterial(
-        "about",
-        ABOUT_PULSE_RANGE,
-        progress,
-        pulse
-      );
-    }
-    for (const id of PROJECT_IDS) {
-      const ref = projectRefs[id].current;
-      if (ref) {
-        ref.material = pickMaterial(id, PROJECT_PULSE_RANGE, progress, pulse);
-      }
-    }
-  });
 
   useEffect(() => {
-    document.body.style.cursor = hoveredMesh ? "pointer" : "auto";
-  }, [hoveredMesh]);
+    document.body.style.cursor = hoveredFrame ? "pointer" : "auto";
+  }, [hoveredFrame]);
 
   return (
     <group {...props} dispose={null}>
-      <mesh
-        geometry={nodes.detail_Baked.geometry}
-        material={materials["MergedBake_Baked.010"]}
-        position={[-6.46, 69.669, -1.148]}
-        rotation={[Math.PI / 2, 0, 0]}
-      />
-      {/* Static visual: the baked picture wall. Keeps its pulse cue while the
-          about area is in view; interaction is handled by the click-zones. */}
-      <mesh
-        ref={aboutPicRef}
-        geometry={nodes.About_Me_Pictures.geometry}
-        material={baseMaterial}
-        position={[-8.164, 68.036, 4.408]}
-        rotation={[Math.PI / 2, 0, 0]}
-      />
-
-      {/* Four invisible click-zones, one per frame on the about wall. */}
-      <group position={aboutZoneLayout.position}>
-        {aboutZoneLayout.zones.map((zone) => (
-          <mesh
-            key={zone.id}
-            position={[zone.x, 0, 0]}
-            onPointerOver={() => setHoveredMesh(zone.id)}
-            onPointerOut={() => setHoveredMesh(null)}
-            onClick={() => handleClick(zone.id)}
-          >
-            <planeGeometry
-              args={[aboutZoneLayout.width, aboutZoneLayout.height]}
-            />
-            <meshBasicMaterial
-              transparent
-              opacity={hoveredMesh === zone.id ? 0.18 : 0}
-              color={"#1aa89c"}
-              side={THREE.DoubleSide}
-              depthWrite={false}
-            />
-          </mesh>
-        ))}
-
-        {/* Chosen pictures overlaid on the baked about-wall frames: a dark matte
-            plane with the whole photo aspect-fitted on top, so each reads as a
-            framed picture. Turned to face the -z wall; raycast disabled so the
-            click-zones still fire. */}
-        {aboutZoneLayout.zones.map((zone) => {
-          const [ox, oy, oz] = aboutFrameImages.offset;
-          const [mw, mh] = aboutFrameImages.matte;
-          const [iw, ih] = containSize(
-            aboutTextures[zone.id],
-            aboutFrameImages.photo[0],
-            aboutFrameImages.photo[1]
-          );
-          return (
-            <group
-              key={`img-${zone.id}`}
-              position={[zone.x + ox, oy, oz]}
-              rotation={[aboutFrameImages.lean, Math.PI, 0]}
-              raycast={() => null}
-            >
-              <mesh position={[0, 0, -0.002]} raycast={() => null}>
-                <planeGeometry args={[mw, mh]} />
-                <meshBasicMaterial
-                  color={ABOUT_MATTE}
-                  toneMapped={false}
-                  side={THREE.DoubleSide}
-                />
-              </mesh>
-              <mesh raycast={() => null}>
-                <planeGeometry args={[iw, ih]} />
-                <meshBasicMaterial
-                  map={aboutTextures[zone.id]}
-                  toneMapped={false}
-                  side={THREE.DoubleSide}
-                />
-              </mesh>
-            </group>
-          );
-        })}
-      </group>
-      <mesh
-        ref={projectRefs.one}
-        geometry={nodes.Project_One.geometry}
-        material={baseMaterial}
-        position={[-10.528, 69.422, -4.13]}
-        rotation={[Math.PI / 2, 0, 0]}
-        onPointerOver={() => setHoveredMesh("one")}
-        onPointerOut={() => setHoveredMesh(null)}
-        onClick={() => {
-          handleClick("one");
-        }}
-      />
-      <mesh
-        ref={projectRefs.two}
-        geometry={nodes.Project_Two.geometry}
-        material={baseMaterial}
-        position={[-9.532, 69.422, -4.13]}
-        rotation={[Math.PI / 2, 0, 0]}
-        onPointerOver={() => setHoveredMesh("two")}
-        onPointerOut={() => setHoveredMesh(null)}
-        onClick={() => {
-          handleClick("two");
-        }}
-      />
-      <mesh
-        ref={projectRefs.three}
-        geometry={nodes.Project_Three.geometry}
-        material={baseMaterial}
-        position={[-8.536, 69.422, -4.13]}
-        rotation={[Math.PI / 2, 0, 0]}
-        onPointerOver={() => setHoveredMesh("three")}
-        onPointerOut={() => setHoveredMesh(null)}
-        onClick={() => {
-          handleClick("three");
-        }}
-      />
-      <mesh
-        ref={projectRefs.four}
-        geometry={nodes.Project_Four.geometry}
-        material={baseMaterial}
-        position={[-7.541, 69.422, -4.13]}
-        rotation={[Math.PI / 2, 0, 0]}
-        onPointerOver={() => setHoveredMesh("four")}
-        onPointerOut={() => setHoveredMesh(null)}
-        onClick={() => {
-          handleClick("four");
-        }}
-      />
-      <mesh
-        geometry={nodes.about_me_text.geometry}
-        material={materials["MergedBake_Baked.010"]}
-        position={[-8.524, 68.356, 4.727]}
-        rotation={[Math.PI / 2, 0, 0]}
-      />
-
-      {/* Correct project screenshots overlaid on the baked frame photos: a dark
-          matte with the whole screenshot aspect-fitted on top (no crop). Raycast
-          disabled so the frame meshes underneath still receive clicks. */}
-      {Object.keys(projectFrameImages.src).map((id) => {
-        const [cx, cy, cz] = projectFrameImages.centers[id];
-        const [ox, oy, oz] = projectFrameImages.offset;
-        const [mw, mh] = projectFrameImages.matte;
+      {FRAMES.map((frame) => {
+        const y = FLOOR_Y[frame.floor];
+        const z = WALL_Z[frame.floor];
+        const matteColor = frame.kind === "project" ? PROJECT_MATTE : ABOUT_MATTE;
+        const [mw, mh] = PANEL.matte;
         const [iw, ih] = containSize(
-          frameTextures[id],
-          projectFrameImages.photo[0],
-          projectFrameImages.photo[1]
+          textures[frame.id],
+          PANEL.photo[0],
+          PANEL.photo[1]
         );
+        const hovered = hoveredFrame === frame.id;
         return (
-          <group
-            key={id}
-            position={[cx + ox, cy + oy, cz + oz]}
-            raycast={() => null}
-          >
-            <mesh position={[0, 0, -0.002]} raycast={() => null}>
+          <group key={frame.id} position={[frame.x, y, z]}>
+            <mesh position={[0, 0, -0.01]} raycast={() => null}>
               <planeGeometry args={[mw, mh]} />
-              <meshBasicMaterial color={PROJECT_MATTE} toneMapped={false} />
+              <meshBasicMaterial
+                color={hovered ? "#3a2a18" : matteColor}
+                toneMapped={false}
+              />
             </mesh>
             <mesh raycast={() => null}>
               <planeGeometry args={[iw, ih]} />
-              <meshBasicMaterial map={frameTextures[id]} toneMapped={false} />
+              <meshBasicMaterial map={textures[frame.id]} toneMapped={false} />
+            </mesh>
+            <mesh
+              position={[0, 0, 0.04]}
+              onPointerOver={() => setHoveredFrame(frame.id)}
+              onPointerOut={() => setHoveredFrame(null)}
+              onClick={() => handleClick(frame)}
+            >
+              <planeGeometry args={PANEL.click} />
+              <meshBasicMaterial
+                transparent
+                opacity={hovered ? 0.12 : 0}
+                color={"#1aa89c"}
+                depthWrite={false}
+              />
             </mesh>
           </group>
         );
