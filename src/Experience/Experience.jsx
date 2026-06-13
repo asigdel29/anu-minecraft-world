@@ -13,7 +13,7 @@ import normalizeWheel from "normalize-wheel";
 // to the rotation keyframes in Scene.jsx. On touch we snap to the nearest of
 // these when a swipe ends, so every gesture settles on a framed view instead
 // of drifting past content. The exterior fly-back (>0.643) carries no stop.
-const NAV_STOPS = [0, 0.21, 0.357, 0.5, 0.643];
+const NAV_STOPS = [0, 0.18, 0.31, 0.44, 0.56];
 
 // Snap a free-scrolled progress value to the closest stop, moving the *short*
 // way around the looped path (so snapping near the end rolls forward to 0/1

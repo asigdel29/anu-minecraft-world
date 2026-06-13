@@ -15,7 +15,6 @@ import FrontGrass from "./models/FrontGrassT";
 import GrassBlocks from "./models/GrassBlocksT";
 import GrassSides from "./models/GrassSidesT";
 import Mobs from "./models/MobsT";
-import WallText from "./WallText";
 
 // The project frames live on the middle floor's front face. On a wide screen
 // the climbing camera frames them all, but on a narrow / portrait phone the
@@ -23,7 +22,7 @@ import WallText from "./WallText";
 // dolly the camera straight back (local +z) so they all fit; wider screens are
 // untouched. The window is centred on the middle-floor stop (~0.357) so the
 // pull-back peaks where the frames are actually on screen.
-const PROJECTS_VIEW = { start: 0.3, end: 0.42 };
+const PROJECTS_VIEW = { start: 0.39, end: 0.5 };
 
 const getProjectsDolly = (progress, size) => {
   if (size.width > 768) return 0;
@@ -61,27 +60,29 @@ const Scene = ({
     () =>
       new THREE.CatmullRomCurve3(
         [
-          // The path ascends the front (world +Z) face of the three-storey
-          // house: a far approach, then a near-vertical climb past each floor
-          // (ground -> middle -> top -> rooftop), then an exterior fly-back
-          // that descends to the start so the closed loop reads as a graceful
-          // return. Camera X holds near the house centre (world x -5.5) and Z
-          // sits a few units in front of the balconies; only Y rises. Floor
-          // heights: ground ~67, middle ~72, top ~77, rooftop ~82.
+          // The visitor enters through the front door and climbs the interior
+          // atrium floor by floor. The path approaches, passes through the
+          // doorway (world z ~8) into the central shaft (world x -5.5, z ~1.3),
+          // then rises through the open floors (ground ~67 -> middle ~72 ->
+          // top ~77). It then descends the shaft and exits back out the door,
+          // arcing to the start so the closed loop returns without clipping the
+          // walls. Only the climb (0 -> ~0.6) is the journey; the rest returns.
           new THREE.Vector3(2, 65, 47.5), // far approach
-          new THREE.Vector3(-2, 65.5, 36),
-          new THREE.Vector3(-5.5, 66.5, 27),
-          new THREE.Vector3(-5.5, 68.0, 23), // ground floor (about)
-          new THREE.Vector3(-5.5, 70.0, 22.5),
-          new THREE.Vector3(-5.5, 72.5, 22), // middle floor (projects)
-          new THREE.Vector3(-5.5, 75.0, 21.5),
-          new THREE.Vector3(-5.5, 77.0, 21), // top floor (books + links)
-          new THREE.Vector3(-5.5, 80.0, 21),
-          new THREE.Vector3(-5.0, 83.0, 22), // rooftop terrace hero
-          new THREE.Vector3(-3, 85, 27),
-          new THREE.Vector3(5, 80, 34), // exterior fly-back
-          new THREE.Vector3(6, 70, 42),
-          new THREE.Vector3(3, 66, 47),
+          new THREE.Vector3(-2, 65.5, 33),
+          new THREE.Vector3(-5.5, 66.2, 20),
+          new THREE.Vector3(-5.5, 66.7, 11), // nearing the door
+          new THREE.Vector3(-5.5, 67.0, 5.5), // through the doorway
+          new THREE.Vector3(-5.5, 67.5, 3.0), // ground floor interior (about)
+          new THREE.Vector3(-5.5, 70.5, 3.0),
+          new THREE.Vector3(-5.5, 73.0, 3.0), // middle floor (projects)
+          new THREE.Vector3(-5.5, 75.8, 3.0),
+          new THREE.Vector3(-5.5, 78.4, 3.0), // top floor (books + links)
+          new THREE.Vector3(-5.5, 80.0, 3.0), // top of the climb
+          new THREE.Vector3(-5.5, 74.0, 3.2), // descend the shaft
+          new THREE.Vector3(-5.5, 67.4, 5.5), // back toward the door
+          new THREE.Vector3(-5.5, 66.4, 14), // exit the door
+          new THREE.Vector3(-2, 65.5, 30), // arc back out
+          new THREE.Vector3(3, 65, 44),
         ],
         true
       ),
@@ -91,20 +92,21 @@ const Scene = ({
   // Rotation keyframes, pre-baked into quaternions once (eulers are only ever
   // needed as quats for slerp). Scratch Vector3 reused by the path lookup.
   const rotationQuats = useMemo(() => {
-    // The camera faces the house (world -Z) throughout the climb; only pitch
-    // changes — tilted up while low and close, levelling out as it rises, then
-    // looking out and down from the rooftop. The fly-back yaws away as it
-    // descends. Pitch up is +X here (the camera group's forward is -Z).
+    // The camera faces into the house (world -Z, toward the interior back wall
+    // where the floor content sits) for the whole climb; only a gentle pitch
+    // changes so each floor's wall stays framed as it rises. On the way back
+    // down and out it stays facing in, so backing out the door reads naturally.
+    // Pitch up is +X here (the camera group's forward is -Z).
     const targets = [
-      { progress: 0, rotation: [-0.08, 0.1, 0.0] }, // approach
-      { progress: 0.1, rotation: [0.02, 0.03, 0.0] },
-      { progress: 0.21, rotation: [0.09, 0.0, 0.0] }, // ground, slight up
-      { progress: 0.357, rotation: [0.05, 0.0, 0.0] }, // middle
-      { progress: 0.5, rotation: [0.0, 0.0, 0.0] }, // top, level
-      { progress: 0.643, rotation: [-0.14, 0.0, 0.0] }, // rooftop, look out
-      { progress: 0.72, rotation: [-0.18, 0.3, 0.0] }, // pull out
-      { progress: 0.85, rotation: [-0.04, 0.22, 0.0] }, // fly-back descend
-      { progress: 1, rotation: [-0.08, 0.1, 0.0] },
+      { progress: 0, rotation: [-0.05, 0.06, 0.0] }, // approach
+      { progress: 0.18, rotation: [0.0, 0.0, 0.0] }, // doorway
+      { progress: 0.31, rotation: [0.04, 0.0, 0.0] }, // ground floor
+      { progress: 0.44, rotation: [0.03, 0.0, 0.0] }, // middle floor
+      { progress: 0.56, rotation: [0.03, 0.0, 0.0] }, // top floor
+      { progress: 0.62, rotation: [0.18, 0.0, 0.0] }, // glance up the shaft
+      { progress: 0.78, rotation: [-0.02, 0.0, 0.0] }, // descending
+      { progress: 0.9, rotation: [-0.05, 0.04, 0.0] }, // exiting
+      { progress: 1, rotation: [-0.05, 0.06, 0.0] },
     ];
     return targets.map(({ progress, rotation }) => ({
       progress,
@@ -218,7 +220,6 @@ const Scene = ({
         </group>
         <SceneSky houseRef={houseRef} />
         <Detail scrollProgress={scrollProgress} />
-        <WallText />
       </Suspense>
       <Suspense fallback={null}>
         <BackGrass />
