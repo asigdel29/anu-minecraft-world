@@ -9,6 +9,8 @@ baked in world coordinates, so the mesh needs no position or rotation here.
 */
 
 
+import * as THREE from "three";
+
 import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 import { convertMaterialsToMeshBasicMaterial } from "../utils/convertMaterial";
 
@@ -30,6 +32,10 @@ export default function Model(props) {
   // the GPU early-z reject the exterior shaded through window openings; left
   // transparent it tanks scroll framerate once the SkyShell occluder is gone.
   materials["MergedBake"].transparent = false;
+
+  // The camera travels up the interior atrium, so both faces of every wall and
+  // floor must render — the baked atlas reads the same from either side.
+  materials["MergedBake"].side = THREE.DoubleSide;
 
   return (
     <group {...props} dispose={null}>
