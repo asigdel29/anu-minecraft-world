@@ -215,7 +215,7 @@ const Scene = ({
           <House />
         </group>
         <SceneSky houseRef={houseRef} />
-        <Detail scrollProgress={scrollProgress} />
+        <Detail />
       </Suspense>
       <Suspense fallback={null}>
         <BackGrass />
