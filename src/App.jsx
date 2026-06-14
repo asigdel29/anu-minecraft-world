@@ -7,7 +7,7 @@ import Modal from "./components/Modal/Modal";
 import AudioToggleButton from "./components/AudioToggleButton/AudioToggleButton";
 import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
 import InfoButton from "./components/InfoButton/InfoButton";
-import ScrollHint from "./components/ScrollHint/ScrollHint";
+import ControlsHint from "./components/ControlsHint/ControlsHint";
 import InteractPrompt from "./components/InteractPrompt/InteractPrompt";
 
 // The 3D experience pulls in three.js and React Three Fiber (the bulk of the
@@ -21,7 +21,7 @@ function App() {
       <LoadingScreen />
       <AudioToggleButton />
       <InfoButton />
-      <ScrollHint />
+      <ControlsHint />
       <InteractPrompt />
       <Modal />
       <Suspense fallback={null}>
