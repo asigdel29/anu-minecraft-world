@@ -1,7 +1,5 @@
-import { Suspense, useMemo, useRef } from "react";
+import { Suspense, useRef } from "react";
 
-import * as THREE from "three";
-import { useFrame, useThree } from "@react-three/fiber";
 import { Environment } from "@react-three/drei";
 
 import House from "./models/HouseT";
@@ -11,187 +9,17 @@ import Detail from "./models/DetailT";
 import FrontGrass from "./models/FrontGrassT";
 import GrassSides from "./models/GrassSidesT";
 import Mobs from "./models/MobsT";
-import Player from "./models/PlayerT";
+import Player from "./Player";
 import GateSign from "./GateSign";
 import Terminal3D from "./Terminal3D";
 import AmbientLife from "./AmbientLife";
 
-// The project frames live on the middle floor's front face. On a wide screen
-// the climbing camera frames them all, but on a narrow / portrait phone the
-// same view sits too close to fit every frame. Across the middle-floor view we
-// dolly the camera straight back (local +z) so they all fit; wider screens are
-// untouched. The window is centred on the middle-floor stop (~0.357) so the
-// pull-back peaks where the frames are actually on screen.
-const PROJECTS_VIEW = { start: 0.39, end: 0.5 };
-
-const getProjectsDolly = (progress, size) => {
-  if (size.width > 768) return 0;
-  if (progress <= PROJECTS_VIEW.start || progress >= PROJECTS_VIEW.end) return 0;
-
-  // Portrait needs the most pull-back (its horizontal field of view is
-  // narrowest); landscape phones need only a nudge.
-  const portrait = size.height >= size.width;
-  const peak = portrait ? 2.8 : 1.4;
-  const t =
-    (progress - PROJECTS_VIEW.start) /
-    (PROJECTS_VIEW.end - PROJECTS_VIEW.start);
-
-  // Smooth 0 -> peak -> 0 bump so the pull-back eases in and out of the view.
-  return peak * Math.sin(Math.PI * t);
-};
-
-const Scene = ({
-  cameraGroup,
-  camera,
-  scrollProgress,
-  targetScrollProgress,
-  lerpFactor,
-  mouseOffset,
-}) => {
-  const size = useThree((state) => state.size);
+// The world is static, baked geometry. It used to be toured by a scripted
+// camera that scrolling slid along a spline; that path (and its rotation
+// keyframes and per-view dolly) is gone. The camera is now driven by the
+// character controller in Player.jsx, so Scene just composes the world.
+const Scene = () => {
   const houseRef = useRef();
-
-  // The camera path and rotation keyframes are constant, but Scene re-renders
-  // every frame (it lifts scroll progress into state). Building them in useMemo
-  // — and pre-baking the rotation eulers into quaternions — keeps us from
-  // allocating ~30 throwaway objects per frame, which was a real source of GC
-  // jank during scroll.
-  const cameraCurve = useMemo(
-    () =>
-      new THREE.CatmullRomCurve3(
-        [
-          // The visitor enters through the front door and climbs the interior
-          // atrium floor by floor. The path approaches, passes through the
-          // doorway (world z ~8) into the central shaft (world x -5.5, z ~1.3),
-          // then rises through the open floors (ground ~67 -> middle ~72 ->
-          // top ~77). It then descends the shaft and exits back out the door,
-          // arcing to the start so the closed loop returns without clipping the
-          // walls. Only the climb (0 -> ~0.6) is the journey; the rest returns.
-          new THREE.Vector3(2, 65, 47.5), // far approach
-          new THREE.Vector3(-2, 65.5, 33),
-          new THREE.Vector3(-5.5, 66.2, 20),
-          new THREE.Vector3(-5.5, 66.7, 11), // nearing the door
-          new THREE.Vector3(-5.5, 67.0, 5.5), // through the doorway
-          new THREE.Vector3(-5.5, 67.5, 3.0), // ground floor interior (about)
-          new THREE.Vector3(-5.5, 70.5, 3.0),
-          new THREE.Vector3(-5.5, 73.0, 3.0), // middle floor (projects)
-          new THREE.Vector3(-5.5, 75.8, 3.0),
-          new THREE.Vector3(-5.5, 78.4, 3.0), // top floor (books + links)
-          new THREE.Vector3(-5.5, 80.0, 3.0), // top of the climb
-          new THREE.Vector3(-5.5, 74.0, 3.2), // descend the shaft
-          new THREE.Vector3(-5.5, 67.4, 5.5), // back toward the door
-          new THREE.Vector3(-5.5, 66.4, 14), // exit the door
-          new THREE.Vector3(-2, 65.5, 30), // arc back out
-          new THREE.Vector3(3, 65, 44),
-        ],
-        true
-      ),
-    []
-  );
-
-  // Rotation keyframes, pre-baked into quaternions once (eulers are only ever
-  // needed as quats for slerp). Scratch Vector3 reused by the path lookup.
-  const rotationQuats = useMemo(() => {
-    // The camera faces into the house (world -Z, toward the interior back wall
-    // where the floor content sits) for the whole climb; only a gentle pitch
-    // changes so each floor's wall stays framed as it rises. On the way back
-    // down and out it stays facing in, so backing out the door reads naturally.
-    // Pitch up is +X here (the camera group's forward is -Z).
-    const targets = [
-      { progress: 0, rotation: [-0.05, 0.06, 0.0] }, // approach
-      { progress: 0.18, rotation: [0.0, 0.0, 0.0] }, // doorway
-      { progress: 0.31, rotation: [0.04, 0.0, 0.0] }, // ground floor
-      { progress: 0.44, rotation: [0.03, 0.0, 0.0] }, // middle floor
-      { progress: 0.56, rotation: [0.03, 0.0, 0.0] }, // top floor
-      { progress: 0.62, rotation: [0.18, 0.0, 0.0] }, // glance up the shaft
-      { progress: 0.78, rotation: [-0.02, 0.0, 0.0] }, // descending
-      { progress: 0.9, rotation: [-0.05, 0.04, 0.0] }, // exiting
-      { progress: 1, rotation: [-0.05, 0.06, 0.0] },
-    ];
-    return targets.map(({ progress, rotation }) => ({
-      progress,
-      quat: new THREE.Quaternion().setFromEuler(
-        new THREE.Euler(rotation[0], rotation[1], rotation[2])
-      ),
-    }));
-  }, []);
-
-  const basePoint = useMemo(() => new THREE.Vector3(), []);
-
-  // Slerp the keyframe quaternions into `out` (no per-frame allocation).
-  const writeLerpedRotation = (progress, out) => {
-    for (let i = 0; i < rotationQuats.length - 1; i++) {
-      const start = rotationQuats[i];
-      const end = rotationQuats[i + 1];
-      if (progress >= start.progress && progress <= end.progress) {
-        const t =
-          (progress - start.progress) / (end.progress - start.progress);
-        out.slerpQuaternions(start.quat, end.quat, t);
-        return out;
-      }
-    }
-    return out.copy(rotationQuats[rotationQuats.length - 1].quat);
-  };
-
-  useFrame((state, delta) => {
-    if (!camera.current || !cameraGroup.current) return;
-
-    // Frame-rate-independent smoothing. A plain per-frame lerp converges in a
-    // fixed number of FRAMES, so when the heavy outdoor scenery drops the frame
-    // rate the camera needs twice as long in REAL time to catch the scroll
-    // target — that is the "slow outside the house" lag. Deriving the blend
-    // from elapsed time keeps the catch-up duration constant at any FPS. `step`
-    // is clamped so a long stall (backgrounded tab) can't snap the camera.
-    const step = Math.min(delta, 0.1);
-    const scrollAlpha = 1 - Math.pow(1 - lerpFactor, step * 60);
-    const localAlpha = 1 - Math.pow(1 - 0.1, step * 60);
-
-    // The ONE smoothing stage for scroll: ease the live progress toward the
-    // input target. Everything below reads straight off this eased value, so
-    // the camera tracks it tightly instead of through the old extra position
-    // and rotation lerps that stacked up into perceptible lag.
-    let newProgress = THREE.MathUtils.lerp(
-      scrollProgress.current,
-      targetScrollProgress.current,
-      scrollAlpha
-    );
-
-    if (newProgress > 1) {
-      newProgress = 0;
-      targetScrollProgress.current = 0;
-    } else if (newProgress < 0) {
-      newProgress = 1;
-      targetScrollProgress.current = 1;
-    }
-
-    scrollProgress.current = newProgress;
-
-    // Path position: driven directly from the eased progress (no second lerp).
-    cameraCurve.getPoint(newProgress, basePoint);
-    cameraGroup.current.position.copy(basePoint);
-
-    // Camera-local parallax keeps its own gentle lerp — it follows the pointer,
-    // not the scroll, so a little independent softening reads well. Same
-    // frame-rate-independent blend so it stays consistent when FPS dips.
-    camera.current.position.x = THREE.MathUtils.lerp(
-      camera.current.position.x,
-      mouseOffset.current.x,
-      localAlpha
-    );
-    camera.current.position.y = THREE.MathUtils.lerp(
-      camera.current.position.y,
-      -mouseOffset.current.y,
-      localAlpha
-    );
-    camera.current.position.z = THREE.MathUtils.lerp(
-      camera.current.position.z,
-      getProjectsDolly(newProgress, size),
-      localAlpha
-    );
-
-    // Rotation: also straight off the eased progress.
-    writeLerpedRotation(newProgress, cameraGroup.current.quaternion);
-  });
 
   return (
     <>
@@ -233,29 +61,18 @@ const Scene = ({
       <Suspense fallback={null}>
         <BackGrass />
       </Suspense>
-      {/* The Extras / ExtrasTwo / ExtrasThree prop blobs (furniture and the old
-          door mechanism) were baked for the previous single-room house. Inside
-          the new multi-storey house they sit at the wrong places and block the
-          interior and doorway view, so they are no longer rendered — the new
-          house GLB carries its own door, trim, garden, and lamps. */}
       <Suspense fallback={null}>
         <FrontGrass />
       </Suspense>
-      {/* GrassBlocks (the dense grass tufts) crowded the new doorway and the
-          camera clipped through them on entry; the house now has its own garden
-          at the entrance, so the tufts are dropped. */}
       <Suspense fallback={null}>
         <GrassSides />
       </Suspense>
       <Suspense fallback={null}>
         <Mobs />
       </Suspense>
-      {/* The controllable character. For now it stands at a fixed spawn on the
-          front lawn facing the house so we can confirm the asset loads and its
-          idle clip plays; the movement controller that drives this position
-          arrives in a later change. */}
+      {/* The controllable character. It owns the camera each frame. */}
       <Suspense fallback={null}>
-        <Player position={[0, 64.85, 20]} rotation={[0, Math.PI, 0]} />
+        <Player />
       </Suspense>
     </>
   );
