@@ -11,6 +11,7 @@ import Detail from "./models/DetailT";
 import FrontGrass from "./models/FrontGrassT";
 import GrassSides from "./models/GrassSidesT";
 import Mobs from "./models/MobsT";
+import Player from "./models/PlayerT";
 import GateSign from "./GateSign";
 import Terminal3D from "./Terminal3D";
 import AmbientLife from "./AmbientLife";
@@ -248,6 +249,13 @@ const Scene = ({
       </Suspense>
       <Suspense fallback={null}>
         <Mobs />
+      </Suspense>
+      {/* The controllable character. For now it stands at a fixed spawn on the
+          front lawn facing the house so we can confirm the asset loads and its
+          idle clip plays; the movement controller that drives this position
+          arrives in a later change. */}
+      <Suspense fallback={null}>
+        <Player position={[0, 64.85, 20]} rotation={[0, Math.PI, 0]} />
       </Suspense>
     </>
   );
