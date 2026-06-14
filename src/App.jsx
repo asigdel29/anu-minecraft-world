@@ -9,6 +9,7 @@ import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
 import InfoButton from "./components/InfoButton/InfoButton";
 import ControlsHint from "./components/ControlsHint/ControlsHint";
 import InteractPrompt from "./components/InteractPrompt/InteractPrompt";
+import TouchControls from "./components/TouchControls/TouchControls";
 
 // The 3D experience pulls in three.js and React Three Fiber (the bulk of the
 // bundle). Loading it lazily lets the lightweight DOM overlay — including the
@@ -23,6 +24,7 @@ function App() {
       <InfoButton />
       <ControlsHint />
       <InteractPrompt />
+      <TouchControls />
       <Modal />
       <Suspense fallback={null}>
         <Experience />
