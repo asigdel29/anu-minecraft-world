@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+import * as THREE from "three";
+
 // Orbit limits and sensitivities for the third-person rig. Pitch is kept just
 // above the ground and just below straight-down so the camera never flips or
 // buries itself in the lawn; distance clamps keep the character framed.
@@ -10,6 +12,8 @@ const DISTANCE_MAX = 16;
 const ORBIT_SENSITIVITY = 0.005;
 const ZOOM_SENSITIVITY = 0.8;
 const LOOK_HEIGHT = 1.5; // aim at the character's head, not its feet
+const CAMERA_NEAR_MIN = 2; // never pull closer than this when a wall intrudes
+const CAMERA_SKIN = 0.3; // keep the camera just off the surface it hit
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -30,6 +34,12 @@ export function useThirdPersonCamera() {
   const yaw = useRef(Math.PI); // start behind the character (facing the house)
   const pitch = useRef(0.35);
   const distance = useRef(9);
+
+  // Scratch objects reused each frame so `apply` allocates nothing.
+  const aim = useRef(new THREE.Vector3());
+  const desired = useRef(new THREE.Vector3());
+  const toCamera = useRef(new THREE.Vector3());
+  const raycaster = useRef(new THREE.Raycaster());
 
   useEffect(() => {
     let dragging = false;
@@ -76,14 +86,36 @@ export function useThirdPersonCamera() {
     };
   }, []);
 
-  const apply = (camera, target) => {
+  // Place the camera on its orbit around `target`, looking at the head. If
+  // `colliders` are given and the house wall would sit between the head and the
+  // camera, pull the camera in to the wall so the view never clips inside.
+  const apply = (camera, target, colliders) => {
+    aim.current.set(target.x, target.y + LOOK_HEIGHT, target.z);
     const cosPitch = Math.cos(pitch.current);
-    camera.position.set(
+    desired.current.set(
       target.x + distance.current * Math.sin(yaw.current) * cosPitch,
-      target.y + LOOK_HEIGHT + distance.current * Math.sin(pitch.current),
+      aim.current.y + distance.current * Math.sin(pitch.current),
       target.z + distance.current * Math.cos(yaw.current) * cosPitch
     );
-    camera.lookAt(target.x, target.y + LOOK_HEIGHT, target.z);
+
+    const list = colliders && colliders.current;
+    if (list && list.length) {
+      toCamera.current.subVectors(desired.current, aim.current);
+      const reach = toCamera.current.length();
+      toCamera.current.divideScalar(reach || 1);
+      raycaster.current.set(aim.current, toCamera.current);
+      raycaster.current.far = reach;
+      const hits = raycaster.current.intersectObjects(list, true);
+      if (hits.length) {
+        const pulled = Math.max(CAMERA_NEAR_MIN, hits[0].distance - CAMERA_SKIN);
+        desired.current
+          .copy(aim.current)
+          .addScaledVector(toCamera.current, pulled);
+      }
+    }
+
+    camera.position.copy(desired.current);
+    camera.lookAt(aim.current);
   };
 
   return { apply };
