@@ -8,6 +8,7 @@ import AudioToggleButton from "./components/AudioToggleButton/AudioToggleButton"
 import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
 import InfoButton from "./components/InfoButton/InfoButton";
 import ScrollHint from "./components/ScrollHint/ScrollHint";
+import InteractPrompt from "./components/InteractPrompt/InteractPrompt";
 
 // The 3D experience pulls in three.js and React Three Fiber (the bulk of the
 // bundle). Loading it lazily lets the lightweight DOM overlay — including the
@@ -21,6 +22,7 @@ function App() {
       <AudioToggleButton />
       <InfoButton />
       <ScrollHint />
+      <InteractPrompt />
       <Modal />
       <Suspense fallback={null}>
         <Experience />
