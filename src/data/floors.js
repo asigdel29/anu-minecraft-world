@@ -31,6 +31,10 @@ export const PANELS = [
   { id: "two", floor: "middle", x: -6.7, img: "/images/matrixportfolio.webp", modal: "project", projectId: "two", title: "matrixportfolio" },
   { id: "three", floor: "middle", x: -3.8, img: "/images/coding-monkey.webp", modal: "project", projectId: "three", title: "coding-monkey" },
   { id: "four", floor: "middle", x: -0.9, img: "/images/ai-native-city.webp", modal: "project", projectId: "four", title: "AI Native Sims City" },
-  { id: "links", floor: "top", x: -7.5, img: "/images/newsletter.webp", modal: "links", title: "Random Links" },
-  { id: "books", floor: "top", x: -3.5, img: "/images/books.webp", modal: "books", title: "Currently Reading" },
+  { id: "links", floor: "top", x: -8.5, img: "/images/newsletter.webp", modal: "links", title: "Random Links" },
+  { id: "books", floor: "top", x: -2.5, img: "/images/books.webp", modal: "books", title: "Currently Reading" },
 ];
+
+// The interactive terminal sits between the top-floor panels (x = -5.5). It is
+// rendered as its own 3D screen (src/Experience/Terminal3D.jsx), not a framed
+// photo, so it lives here only as a note for layout.

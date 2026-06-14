@@ -12,6 +12,7 @@ import FrontGrass from "./models/FrontGrassT";
 import GrassSides from "./models/GrassSidesT";
 import Mobs from "./models/MobsT";
 import GateSign from "./GateSign";
+import Terminal3D from "./Terminal3D";
 
 // The project frames live on the middle floor's front face. On a wide screen
 // the climbing camera frames them all, but on a narrow / portrait phone the
@@ -219,6 +220,7 @@ const Scene = ({
         <group ref={houseRef}>
           <House />
           <Detail />
+          <Terminal3D />
         </group>
         <SceneSky houseRef={houseRef} />
       </Suspense>
