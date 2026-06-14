@@ -1,4 +1,4 @@
-import { Suspense, useRef } from "react";
+import { Suspense, useCallback, useRef } from "react";
 
 import { Environment } from "@react-three/drei";
 
@@ -20,6 +20,17 @@ import AmbientLife from "./AmbientLife";
 // character controller in Player.jsx, so Scene just composes the world.
 const Scene = () => {
   const houseRef = useRef();
+
+  // The character raycasts straight down against this list to find the ground.
+  // The house shell and the three terrain GLBs register here as they mount; the
+  // mobs, ambient props, and content panels are deliberately excluded so the
+  // character can never "stand on" a cow or a picture frame.
+  const colliders = useRef([]);
+  const registerCollider = useCallback((object) => {
+    if (object && !colliders.current.includes(object)) {
+      colliders.current.push(object);
+    }
+  }, []);
 
   return (
     <>
@@ -48,7 +59,9 @@ const Scene = () => {
             capture — otherwise the far top-floor panels get baked into the
             background sky. */}
         <group ref={houseRef}>
-          <House />
+          <group ref={registerCollider}>
+            <House />
+          </group>
           <Detail />
           <Terminal3D />
           <AmbientLife />
@@ -59,20 +72,27 @@ const Scene = () => {
         <GateSign />
       </Suspense>
       <Suspense fallback={null}>
-        <BackGrass />
+        <group ref={registerCollider}>
+          <BackGrass />
+        </group>
       </Suspense>
       <Suspense fallback={null}>
-        <FrontGrass />
+        <group ref={registerCollider}>
+          <FrontGrass />
+        </group>
       </Suspense>
       <Suspense fallback={null}>
-        <GrassSides />
+        <group ref={registerCollider}>
+          <GrassSides />
+        </group>
       </Suspense>
       <Suspense fallback={null}>
         <Mobs />
       </Suspense>
-      {/* The controllable character. It owns the camera each frame. */}
+      {/* The controllable character. It owns the camera each frame and raycasts
+          against the registered colliders to follow the ground. */}
       <Suspense fallback={null}>
-        <Player />
+        <Player colliders={colliders} />
       </Suspense>
     </>
   );
