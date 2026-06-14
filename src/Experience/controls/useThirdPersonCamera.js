@@ -1,0 +1,90 @@
+import { useEffect, useRef } from "react";
+
+// Orbit limits and sensitivities for the third-person rig. Pitch is kept just
+// above the ground and just below straight-down so the camera never flips or
+// buries itself in the lawn; distance clamps keep the character framed.
+const PITCH_MIN = 0.05;
+const PITCH_MAX = 1.3;
+const DISTANCE_MIN = 4;
+const DISTANCE_MAX = 16;
+const ORBIT_SENSITIVITY = 0.005;
+const ZOOM_SENSITIVITY = 0.8;
+const LOOK_HEIGHT = 1.5; // aim at the character's head, not its feet
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+/**
+ * A drag-to-orbit third-person camera rig.
+ *
+ * Dragging (left button / touch) orbits the camera around the character and the
+ * wheel zooms. Drag — rather than pointer lock — is deliberate: the cursor stays
+ * free to click the DOM overlay (audio, info, modals) and the in-world panels.
+ *
+ * Orbit state lives in refs and is consumed each frame by `apply`, so pointer
+ * input never triggers a React re-render.
+ *
+ * @returns `{ apply }` where `apply(camera, target)` places the camera on its
+ *   orbit around `target` (a THREE.Vector3) and looks at the head.
+ */
+export function useThirdPersonCamera() {
+  const yaw = useRef(Math.PI); // start behind the character (facing the house)
+  const pitch = useRef(0.35);
+  const distance = useRef(9);
+
+  useEffect(() => {
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    const onDown = (event) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      dragging = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+    };
+    const onMove = (event) => {
+      if (!dragging) return;
+      yaw.current -= (event.clientX - lastX) * ORBIT_SENSITIVITY;
+      pitch.current = clamp(
+        pitch.current - (event.clientY - lastY) * ORBIT_SENSITIVITY,
+        PITCH_MIN,
+        PITCH_MAX
+      );
+      lastX = event.clientX;
+      lastY = event.clientY;
+    };
+    const onUp = () => {
+      dragging = false;
+    };
+    const onWheel = (event) => {
+      distance.current = clamp(
+        distance.current + Math.sign(event.deltaY) * ZOOM_SENSITIVITY,
+        DISTANCE_MIN,
+        DISTANCE_MAX
+      );
+    };
+
+    window.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
+  const apply = (camera, target) => {
+    const cosPitch = Math.cos(pitch.current);
+    camera.position.set(
+      target.x + distance.current * Math.sin(yaw.current) * cosPitch,
+      target.y + LOOK_HEIGHT + distance.current * Math.sin(pitch.current),
+      target.z + distance.current * Math.cos(yaw.current) * cosPitch
+    );
+    camera.lookAt(target.x, target.y + LOOK_HEIGHT, target.z);
+  };
+
+  return { apply };
+}
