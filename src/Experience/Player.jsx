@@ -11,6 +11,7 @@ import {
   getInteractables,
   useInteractionStore,
 } from "./stores/interactionStore";
+import { playFootstep } from "../utils/footsteps";
 
 // The character walks the world's baked geometry: a downward ray finds the
 // surface under it each frame so it follows the uneven lawn and climbs onto the
@@ -34,6 +35,15 @@ const WALL_SLOPE_LIMIT = 0.5; // |normal.y| above this is floor, not wall
 
 const INTERACT_RANGE = 3.2; // how close to a panel/terminal to prompt for E
 
+// Soft world boundary: a box around the lawn that keeps the character from
+// wandering off the terrain into the void. Generous enough to reach every mob.
+const BOUNDS = { minX: -45, maxX: 45, minZ: -50, maxZ: 55 };
+// Footstep cadence (seconds between steps); a touch quicker while running.
+const STEP_WALK = 0.34;
+const STEP_RUN = 0.26;
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
 const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 
@@ -53,6 +63,7 @@ export default function Player({ colliders }) {
   const grounded = useRef(true);
   const nearest = useRef(null);
   const interactWasHeld = useRef(false);
+  const stepTimer = useRef(0);
 
   // Scratch objects reused every frame to avoid per-frame allocation.
   const forward = useRef(new THREE.Vector3());
@@ -142,6 +153,10 @@ export default function Player({ colliders }) {
       yaw.current += diff * Math.min(1, TURN_RATE * step);
     }
 
+    // Keep the character on the terrain, not out in the void.
+    position.current.x = clamp(position.current.x, BOUNDS.minX, BOUNDS.maxX);
+    position.current.z = clamp(position.current.z, BOUNDS.minZ, BOUNDS.maxZ);
+
     // --- ground following, gravity, and jump --------------------------------
     // Find the surface directly under the head. While the world is still
     // streaming in (no colliders yet) we hold height so the character cannot
@@ -185,6 +200,18 @@ export default function Player({ colliders }) {
     const nextAction = !grounded.current ? "jump" : isMoving ? "walk" : "idle";
     if (nextAction !== action) setAction(nextAction);
 
+    // Footsteps on a cadence while walking on the ground.
+    if (isMoving && grounded.current && !isModalOpen) {
+      stepTimer.current += step;
+      const interval = held.run ? STEP_RUN : STEP_WALK;
+      if (stepTimer.current >= interval) {
+        playFootstep();
+        stepTimer.current = 0;
+      }
+    } else {
+      stepTimer.current = STEP_WALK; // so the next step lands as soon as we move
+    }
+
     // --- nearest interactable + E to open -----------------------------------
     // While a modal is open there is nothing to prompt; otherwise find the
     // closest registered target in range and surface it to the DOM prompt. E
@@ -214,8 +241,9 @@ export default function Player({ colliders }) {
     interactWasHeld.current = held.interact;
 
     // Place the orbit camera last, after this frame's position is settled, so
-    // it tracks the character without a frame of lag.
-    orbitCamera.apply(camera, position.current);
+    // it tracks the character without a frame of lag; pass the colliders so it
+    // can pull in when the house would come between the camera and the head.
+    orbitCamera.apply(camera, position.current, colliders);
   });
 
   return (
