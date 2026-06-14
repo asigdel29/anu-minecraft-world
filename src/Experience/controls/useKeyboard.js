@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+import { input, resetInput } from "./inputState";
+
 // Map physical keys to abstract movement actions. Using `event.code` (physical
 // position) rather than `event.key` keeps WASD working on non-QWERTY layouts,
 // and the arrow keys mirror it for accessibility.
@@ -19,24 +21,16 @@ const KEY_ACTIONS = {
 };
 
 /**
- * Track which movement actions are currently held.
+ * Bind the keyboard to the shared movement input.
  *
- * The state is exposed as a ref (never React state) because the controller
- * reads it every frame inside its own `useFrame`; lifting it into state would
- * re-render the whole scene on each key change for no benefit.
+ * The controller reads {@link input} every frame inside its own `useFrame`, so
+ * key changes never trigger a React re-render. The same object is also written
+ * by the on-screen joystick, so keyboard and touch drive one controller.
  *
- * @returns a ref whose `.current` holds boolean flags keyed by action name.
+ * @returns a stable ref whose `.current` is the shared input object.
  */
 export function useKeyboard() {
-  const actions = useRef({
-    forward: false,
-    back: false,
-    left: false,
-    right: false,
-    jump: false,
-    run: false,
-    interact: false,
-  });
+  const ref = useRef(input);
 
   useEffect(() => {
     const setAction = (event, held) => {
@@ -45,18 +39,14 @@ export function useKeyboard() {
       // The canvas fills the viewport, so Space and the arrows would otherwise
       // scroll the page; swallow them while they drive the character instead.
       event.preventDefault();
-      actions.current[action] = held;
+      input[action] = held;
     };
 
     const onDown = (event) => setAction(event, true);
     const onUp = (event) => setAction(event, false);
     // Releasing focus (tab switch, alt-tab) can drop the keyup, leaving a key
     // stuck "held"; clear everything when the window loses focus.
-    const onBlur = () => {
-      Object.keys(actions.current).forEach((key) => {
-        actions.current[key] = false;
-      });
-    };
+    const onBlur = () => resetInput();
 
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup", onUp);
@@ -68,5 +58,5 @@ export function useKeyboard() {
     };
   }, []);
 
-  return actions;
+  return ref;
 }
