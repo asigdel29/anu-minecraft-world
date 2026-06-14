@@ -8,26 +8,20 @@ import House from "./models/HouseT";
 import SceneSky from "./SceneSky";
 import BackGrass from "./models/BackGrassT";
 import Detail from "./models/DetailT";
-import Extras from "./models/ExtrasT";
-import ExtrasTwo from "./models/ExtrasTwoT";
-import ExtrasThree from "./models/ExtrasThreeT";
 import FrontGrass from "./models/FrontGrassT";
-import GrassBlocks from "./models/GrassBlocksT";
 import GrassSides from "./models/GrassSidesT";
 import Mobs from "./models/MobsT";
-import WallText from "./WallText";
+import GateSign from "./GateSign";
+import Terminal3D from "./Terminal3D";
+import AmbientLife from "./AmbientLife";
 
-// The four project frames span the wall (world x -10.5..-7.5). On a wide screen
-// the fixed camera frames them all, but on a narrow / portrait phone the same
-// view sits too close and slightly right of centre, clipping the leftmost
-// frame. Across the project view we dolly the camera straight back (local +z)
-// so every frame fits; wider screens are untouched.
-//
-// The project framing runs progress ~0.53..0.67 (camera near x-8.4, looking
-// down -z, ~5-6.6 units from the wall) — derived from the camera curve +
-// rotation keyframes. The window is centred there so the pull-back peaks where
-// the frames are actually on screen.
-const PROJECTS_VIEW = { start: 0.5, end: 0.7 };
+// The project frames live on the middle floor's front face. On a wide screen
+// the climbing camera frames them all, but on a narrow / portrait phone the
+// same view sits too close to fit every frame. Across the middle-floor view we
+// dolly the camera straight back (local +z) so they all fit; wider screens are
+// untouched. The window is centred on the middle-floor stop (~0.357) so the
+// pull-back peaks where the frames are actually on screen.
+const PROJECTS_VIEW = { start: 0.39, end: 0.5 };
 
 const getProjectsDolly = (progress, size) => {
   if (size.width > 768) return 0;
@@ -65,22 +59,29 @@ const Scene = ({
     () =>
       new THREE.CatmullRomCurve3(
         [
-          new THREE.Vector3(2, 65, 47.5),
-      new THREE.Vector3(1.4, 65, 39),
-      new THREE.Vector3(-2, 70, 17),
-      new THREE.Vector3(-2.6, 68.5, 4.8),
-      new THREE.Vector3(-2.45, 67.9, 0),
-      new THREE.Vector3(-3.42, 68.9, 0.145),
-      new THREE.Vector3(-8.05, 69.36, -0.875),
-      new THREE.Vector3(-10.05, 69.36, -0.88),
-      new THREE.Vector3(-7.148, 69.22, 0.37),
-      new THREE.Vector3(-9, 69.2, 1.22),
-      new THREE.Vector3(-7.8, 68.72, 3.04),
-      new THREE.Vector3(-8.01, 69.97, -1.72),
-      new THREE.Vector3(-3, 68.21, 0.308), //close door
-      new THREE.Vector3(-2.4, 68.47, 7.1),
-      new THREE.Vector3(-2, 70, 17),
-      new THREE.Vector3(1.4, 65, 39),
+          // The visitor enters through the front door and climbs the interior
+          // atrium floor by floor. The path approaches, passes through the
+          // doorway (world z ~8) into the central shaft (world x -5.5, z ~1.3),
+          // then rises through the open floors (ground ~67 -> middle ~72 ->
+          // top ~77). It then descends the shaft and exits back out the door,
+          // arcing to the start so the closed loop returns without clipping the
+          // walls. Only the climb (0 -> ~0.6) is the journey; the rest returns.
+          new THREE.Vector3(2, 65, 47.5), // far approach
+          new THREE.Vector3(-2, 65.5, 33),
+          new THREE.Vector3(-5.5, 66.2, 20),
+          new THREE.Vector3(-5.5, 66.7, 11), // nearing the door
+          new THREE.Vector3(-5.5, 67.0, 5.5), // through the doorway
+          new THREE.Vector3(-5.5, 67.5, 3.0), // ground floor interior (about)
+          new THREE.Vector3(-5.5, 70.5, 3.0),
+          new THREE.Vector3(-5.5, 73.0, 3.0), // middle floor (projects)
+          new THREE.Vector3(-5.5, 75.8, 3.0),
+          new THREE.Vector3(-5.5, 78.4, 3.0), // top floor (books + links)
+          new THREE.Vector3(-5.5, 80.0, 3.0), // top of the climb
+          new THREE.Vector3(-5.5, 74.0, 3.2), // descend the shaft
+          new THREE.Vector3(-5.5, 67.4, 5.5), // back toward the door
+          new THREE.Vector3(-5.5, 66.4, 14), // exit the door
+          new THREE.Vector3(-2, 65.5, 30), // arc back out
+          new THREE.Vector3(3, 65, 44),
         ],
         true
       ),
@@ -90,20 +91,21 @@ const Scene = ({
   // Rotation keyframes, pre-baked into quaternions once (eulers are only ever
   // needed as quats for slerp). Scratch Vector3 reused by the path lookup.
   const rotationQuats = useMemo(() => {
+    // The camera faces into the house (world -Z, toward the interior back wall
+    // where the floor content sits) for the whole climb; only a gentle pitch
+    // changes so each floor's wall stays framed as it rises. On the way back
+    // down and out it stays facing in, so backing out the door reads naturally.
+    // Pitch up is +X here (the camera group's forward is -Z).
     const targets = [
-      { progress: 0, rotation: [-0.12, 0.17, 0.02] },
-      { progress: 0.14, rotation: [-0.11, 0.003, 0.0] },
-      { progress: 0.2, rotation: [-0.11, 0.003, 0.0] },
-      { progress: 0.24, rotation: [0.173, 1.042, -0.15] },
-      { progress: 0.365, rotation: [0.023, 0.024, -0.001] },
-      { progress: 0.42, rotation: [0.177, 0.972, -0.147] },
-      { progress: 0.5, rotation: [-2.725, 1.02, 2.782] },
-      { progress: 0.56, rotation: [-2.9, -0.069, -3.125] },
-      { progress: 0.62, rotation: [-2.76, 0.21, 3.06] },
-      { progress: 0.715, rotation: [-0.467, -0.681, -0.308] },
-      { progress: 0.735, rotation: [-0.043, 0.012, 0.0005] },
-      { progress: 0.85, rotation: [-0.043, 0.012, 0.0005] },
-      { progress: 1, rotation: [-0.12, 0.17, 0.02] },
+      { progress: 0, rotation: [-0.05, 0.06, 0.0] }, // approach
+      { progress: 0.18, rotation: [0.0, 0.0, 0.0] }, // doorway
+      { progress: 0.31, rotation: [0.04, 0.0, 0.0] }, // ground floor
+      { progress: 0.44, rotation: [0.03, 0.0, 0.0] }, // middle floor
+      { progress: 0.56, rotation: [0.03, 0.0, 0.0] }, // top floor
+      { progress: 0.62, rotation: [0.18, 0.0, 0.0] }, // glance up the shaft
+      { progress: 0.78, rotation: [-0.02, 0.0, 0.0] }, // descending
+      { progress: 0.9, rotation: [-0.05, 0.04, 0.0] }, // exiting
+      { progress: 1, rotation: [-0.05, 0.06, 0.0] },
     ];
     return targets.map(({ progress, rotation }) => ({
       progress,
@@ -212,31 +214,35 @@ const Scene = ({
           the windows is unaffected. House + sky stay paired so the capture sees
           the shell it hides for that one frame. */}
       <Suspense fallback={null}>
+        {/* Detail (the framed content panels) lives inside the houseRef group so
+            it is hidden alongside the house during the one-frame SceneSky
+            capture — otherwise the far top-floor panels get baked into the
+            background sky. */}
         <group ref={houseRef}>
           <House />
+          <Detail />
+          <Terminal3D />
+          <AmbientLife />
         </group>
         <SceneSky houseRef={houseRef} />
-        <Detail scrollProgress={scrollProgress} />
-        <WallText />
+      </Suspense>
+      <Suspense fallback={null}>
+        <GateSign />
       </Suspense>
       <Suspense fallback={null}>
         <BackGrass />
       </Suspense>
-      <Suspense fallback={null}>
-        <Extras />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ExtrasTwo />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ExtrasThree scrollProgress={scrollProgress} />
-      </Suspense>
+      {/* The Extras / ExtrasTwo / ExtrasThree prop blobs (furniture and the old
+          door mechanism) were baked for the previous single-room house. Inside
+          the new multi-storey house they sit at the wrong places and block the
+          interior and doorway view, so they are no longer rendered — the new
+          house GLB carries its own door, trim, garden, and lamps. */}
       <Suspense fallback={null}>
         <FrontGrass />
       </Suspense>
-      <Suspense fallback={null}>
-        <GrassBlocks />
-      </Suspense>
+      {/* GrassBlocks (the dense grass tufts) crowded the new doorway and the
+          camera clipped through them on entry; the house now has its own garden
+          at the entrance, so the tufts are dropped. */}
       <Suspense fallback={null}>
         <GrassSides />
       </Suspense>

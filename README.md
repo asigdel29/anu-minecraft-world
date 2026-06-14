@@ -1,10 +1,21 @@
 # anu-minecraft-world
 
 Anu's interactive 3D portfolio — a scroll-driven Minecraft scene rendered in
-the browser with [React Three Fiber](https://r3f.docs.pmnd.rs/). Navigate the
-world to explore projects, an about page, a reading shelf, and a set of links.
+the browser with [React Three Fiber](https://r3f.docs.pmnd.rs/).
+
+The centrepiece is a three-storey, Kathmandu-style brick house in the Minecraft
+voxel idiom. Scrolling **enters through the front door and climbs the interior
+atrium floor by floor**, with content framed on each level: about + manual on
+the ground floor, projects on the middle floor, and links + a reading shelf on
+the top floor — plus a clickable vintage computer that opens a guestbook. The
+grounds are dressed with a walled garden, gate, trees, a garage, a flat rooftop
+(water tank, solar panels, satellite dish), prayer flags, lighting, an idling
+dog, drifting birds, and chimney smoke.
 
 Live: [sigdel.world](https://sigdel.world)
+
+The interior content (which framed panel sits on which floor, its image, and the
+modal it opens) is defined in one place — [`src/data/floors.js`](src/data/floors.js).
 
 ## Tech
 

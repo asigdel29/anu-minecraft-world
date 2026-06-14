@@ -80,7 +80,9 @@ const ScrollHint = () => {
       aria-hidden="true"
     >
       <span className="scroll-hint-arrow">{coarse ? "↕" : "🖱️"}</span>
-      <span>{coarse ? "Swipe up / down to explore" : "Scroll to explore"}</span>
+      <span>
+        {coarse ? "Swipe up / down to climb" : "Scroll to climb the house"}
+      </span>
     </div>
   );
 };
