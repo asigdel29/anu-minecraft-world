@@ -5,13 +5,12 @@ import { Text } from "@react-three/drei";
 import { useModalStore } from "./stores/modalStore";
 import Terminal from "../components/Terminal/Terminal";
 
-// A small interactive terminal screen on the top floor's back wall (between the
-// Links and Books panels). Clicking it opens the terminal/guestbook modal. The
-// screen is a dark plane with green text; an invisible plane in front handles
-// the click, mirroring the content-panel pattern in DetailT.
+// The vintage CRT computer on the top floor (its body is baked into the house
+// model). This overlays the powered-on green screen text and an invisible
+// click-zone that opens the terminal/guestbook modal — same UI as before.
 const FONT = "/fonts/Minecraft-Regular.ttf";
-const POS = [-5.5, 78.4, -1.9]; // top-floor back wall, facing the climbing camera (+z)
-const SCREEN = [2.0, 1.45];
+const POS = [-5.528, 78.0, -1.5]; // on the baked CRT screen, facing the camera (+z)
+const SCREEN = [1.25, 0.85];
 
 export default function Terminal3D() {
   const { openModal } = useModalStore();
@@ -23,21 +22,17 @@ export default function Terminal3D() {
 
   return (
     <group position={POS}>
-      <mesh raycast={() => null}>
-        <planeGeometry args={SCREEN} />
-        <meshBasicMaterial color="#0b0f0b" toneMapped={false} />
-      </mesh>
       <Text
         font={FONT}
         position={[0, 0, 0.02]}
-        fontSize={0.16}
+        fontSize={0.1}
         color="#5dff7a"
         anchorX="center"
         anchorY="middle"
-        maxWidth={1.8}
+        maxWidth={1.05}
         textAlign="center"
       >
-        {"> guestbook\n> climb complete\n> say hi :)"}
+        {"> guestbook\n> click me :)"}
       </Text>
       <mesh
         position={[0, 0, 0.06]}
@@ -48,7 +43,7 @@ export default function Terminal3D() {
         <planeGeometry args={SCREEN} />
         <meshBasicMaterial
           transparent
-          opacity={hovered ? 0.1 : 0}
+          opacity={hovered ? 0.14 : 0}
           color="#5dff7a"
           depthWrite={false}
         />
