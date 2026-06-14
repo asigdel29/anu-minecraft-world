@@ -11,6 +11,7 @@ import Detail from "./models/DetailT";
 import FrontGrass from "./models/FrontGrassT";
 import GrassSides from "./models/GrassSidesT";
 import Mobs from "./models/MobsT";
+import GateSign from "./GateSign";
 
 // The project frames live on the middle floor's front face. On a wide screen
 // the climbing camera frames them all, but on a narrow / portrait phone the
@@ -220,6 +221,9 @@ const Scene = ({
           <Detail />
         </group>
         <SceneSky houseRef={houseRef} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <GateSign />
       </Suspense>
       <Suspense fallback={null}>
         <BackGrass />
