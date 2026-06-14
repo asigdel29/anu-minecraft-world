@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 
+import { Vector3 } from "three";
 import { Text } from "@react-three/drei";
 
 import { useModalStore } from "./stores/modalStore";
+import { registerInteractable } from "./stores/interactionStore";
 import Terminal from "../components/Terminal/Terminal";
 
 // The vintage CRT computer on the top floor (its body is baked into the house
@@ -19,6 +21,18 @@ export default function Terminal3D() {
   useEffect(() => {
     document.body.style.cursor = hovered ? "pointer" : "auto";
   }, [hovered]);
+
+  // Walk-up interactable; the pointer click below stays as a desktop fallback.
+  useEffect(() => {
+    return registerInteractable({
+      id: "terminal",
+      title: "Guestbook",
+      position: new Vector3(POS[0], POS[1], POS[2]),
+      open: () => openModal("Terminal", <Terminal />, "terminal"),
+    });
+    // openModal is stable, so this registers once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <group position={POS}>

@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { useTexture } from "@react-three/drei";
 
 import { useModalStore } from "../stores/modalStore";
+import { registerInteractable } from "../stores/interactionStore";
 import { FLOORS, PANELS } from "../../data/floors";
 
 import About from "../../components/About/About";
@@ -75,6 +76,23 @@ export default function Model(props) {
   useEffect(() => {
     document.body.style.cursor = hoveredPanel ? "pointer" : "auto";
   }, [hoveredPanel]);
+
+  // Register each panel as a walk-up interactable so the character can open it
+  // with E from nearby; the pointer click above remains as a desktop fallback.
+  useEffect(() => {
+    const unregisters = PANELS.map((panel) => {
+      const floor = FLOORS[panel.floor];
+      return registerInteractable({
+        id: panel.id,
+        title: panel.title,
+        position: new THREE.Vector3(panel.x, floor.y, floor.z),
+        open: () => handleClick(panel),
+      });
+    });
+    return () => unregisters.forEach((unregister) => unregister());
+    // openModal (used by handleClick) is stable, so registering once is enough.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <group {...props} dispose={null}>

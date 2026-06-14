@@ -7,6 +7,10 @@ import PlayerModel from "./models/PlayerT";
 import { useKeyboard } from "./controls/useKeyboard";
 import { useThirdPersonCamera } from "./controls/useThirdPersonCamera";
 import { useModalStore } from "./stores/modalStore";
+import {
+  getInteractables,
+  useInteractionStore,
+} from "./stores/interactionStore";
 
 // The character walks the world's baked geometry: a downward ray finds the
 // surface under it each frame so it follows the uneven lawn and climbs onto the
@@ -28,6 +32,8 @@ const PLAYER_RADIUS = 0.35; // keep the body this far off a wall
 const WALL_CAST_H = 1.0; // cast for walls at mid-body height
 const WALL_SLOPE_LIMIT = 0.5; // |normal.y| above this is floor, not wall
 
+const INTERACT_RANGE = 3.2; // how close to a panel/terminal to prompt for E
+
 const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 
@@ -37,6 +43,7 @@ export default function Player({ colliders }) {
   const orbitCamera = useThirdPersonCamera();
   const camera = useThree((state) => state.camera);
   const { isModalOpen } = useModalStore();
+  const setPrompt = useInteractionStore((state) => state.setPrompt);
   const [action, setAction] = useState("idle");
 
   // Live state kept in refs so per-frame motion never triggers a re-render.
@@ -44,6 +51,8 @@ export default function Player({ colliders }) {
   const yaw = useRef(Math.PI); // start facing the house (down -Z)
   const velocityY = useRef(0);
   const grounded = useRef(true);
+  const nearest = useRef(null);
+  const interactWasHeld = useRef(false);
 
   // Scratch objects reused every frame to avoid per-frame allocation.
   const forward = useRef(new THREE.Vector3());
@@ -175,6 +184,34 @@ export default function Player({ colliders }) {
 
     const nextAction = !grounded.current ? "jump" : isMoving ? "walk" : "idle";
     if (nextAction !== action) setAction(nextAction);
+
+    // --- nearest interactable + E to open -----------------------------------
+    // While a modal is open there is nothing to prompt; otherwise find the
+    // closest registered target in range and surface it to the DOM prompt. E
+    // opens it on the press edge so a held key does not reopen every frame.
+    if (isModalOpen) {
+      if (nearest.current) {
+        nearest.current = null;
+        setPrompt(null);
+      }
+    } else {
+      const targets = getInteractables();
+      let best = null;
+      let bestDistSq = INTERACT_RANGE * INTERACT_RANGE;
+      for (const target of targets) {
+        const distSq = target.position.distanceToSquared(position.current);
+        if (distSq < bestDistSq) {
+          bestDistSq = distSq;
+          best = target;
+        }
+      }
+      if (best !== nearest.current) {
+        nearest.current = best;
+        setPrompt(best ? { id: best.id, title: best.title } : null);
+      }
+      if (best && held.interact && !interactWasHeld.current) best.open();
+    }
+    interactWasHeld.current = held.interact;
 
     // Place the orbit camera last, after this frame's position is settled, so
     // it tracks the character without a frame of lag.

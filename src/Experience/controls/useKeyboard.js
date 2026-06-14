@@ -15,6 +15,7 @@ const KEY_ACTIONS = {
   Space: "jump",
   ShiftLeft: "run",
   ShiftRight: "run",
+  KeyE: "interact",
 };
 
 /**
@@ -34,6 +35,7 @@ export function useKeyboard() {
     right: false,
     jump: false,
     run: false,
+    interact: false,
   });
 
   useEffect(() => {
