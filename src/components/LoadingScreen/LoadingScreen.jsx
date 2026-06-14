@@ -73,7 +73,7 @@ const LoadingScreen = () => {
           <div
             className={`instructions-container ${isRevealed ? "revealed" : ""}`}
           >
-            🖱️ Drag/Scroll Up/Down to Navigate~ 👈
+            🎮 WASD to move · drag to look · explore the world~ ✨
           </div>
           {!isLoaded ? (
             <div className="loading-bar-container">
