@@ -211,11 +211,15 @@ const Scene = ({
           the windows is unaffected. House + sky stay paired so the capture sees
           the shell it hides for that one frame. */}
       <Suspense fallback={null}>
+        {/* Detail (the framed content panels) lives inside the houseRef group so
+            it is hidden alongside the house during the one-frame SceneSky
+            capture — otherwise the far top-floor panels get baked into the
+            background sky. */}
         <group ref={houseRef}>
           <House />
+          <Detail />
         </group>
         <SceneSky houseRef={houseRef} />
-        <Detail />
       </Suspense>
       <Suspense fallback={null}>
         <BackGrass />
