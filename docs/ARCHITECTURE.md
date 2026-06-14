@@ -1,8 +1,9 @@
 # Architecture
 
-`anu-minecraft-world` is a static single-page application: a scroll-driven 3D
-Minecraft scene rendered with React Three Fiber, with HTML overlay UI (loading
-screen, modals, buttons) layered on top.
+`anu-minecraft-world` is a static single-page application: an explorable 3D
+Minecraft world rendered with React Three Fiber, driven by a controllable
+third-person character, with HTML overlay UI (loading screen, controls hint,
+interaction prompt, touch controls, modals, buttons) layered on top.
 
 ## Directory layout
 
@@ -18,18 +19,47 @@ public/            Static, un-hashed assets served as-is
 src/
   main.jsx         React entry
   App.jsx          Composition root; lazy-loads the 3D experience
-  components/      Presentational UI (modals, buttons, loading screen)
+  components/      Presentational UI (modals, buttons, loading screen,
+                   controls hint, interaction prompt, touch controls)
   data/            Content (projects, about, info, links, books) — no JSX
   Experience/      React Three Fiber scene
-    Experience.jsx Canvas + scroll/pointer input wiring
-    Scene.jsx      Camera path, lighting, model composition
+    Experience.jsx Canvas + default camera (driven by the controller)
+    Scene.jsx      Model composition + the collider registry
+    Player.jsx     Character controller (movement, gravity, collision, interact)
     WallText.jsx   In-world signage overlay (see "Baked text" below)
-    models/        gltfjsx-generated model components
-    stores/        Zustand stores (audio, modal)
+    controls/      Input + camera rig (useKeyboard, inputState,
+                   useThirdPersonCamera)
+    models/        gltfjsx-generated model components (incl. the player rig)
+    stores/        Zustand stores (audio, modal, interaction)
     utils/         Material conversion + KTX2-aware glTF loader
-  utils/           Cross-cutting helpers (audio system, text parsing)
+  utils/           Cross-cutting helpers (audio system, footsteps, text parsing)
   styles/          Global SCSS (variables, fonts, reset)
 ```
+
+## Character controller
+
+The world is explored by driving a character rather than scrolling a scripted
+camera path. The pieces, all under `Experience/`:
+
+- **Input.** `controls/useKeyboard.js` maps WASD / arrows / Space / Shift / E to
+  a shared mutable `controls/inputState.js` object; `components/TouchControls`
+  writes the same object from an on-screen joystick. The object is read every
+  frame, never lifted into React state, so input causes no re-render.
+- **Controller.** `Player.jsx` owns the character's position and facing in refs
+  and advances them in one `useFrame`: it moves along the camera-relative axes,
+  turns the body toward travel, and swaps the model's idle / walk / jump clips.
+- **Camera.** `controls/useThirdPersonCamera.js` is a drag-to-orbit rig (wheel
+  zooms) applied after the position settles; it raycasts and pulls in when the
+  house would clip between the camera and the head.
+- **Collision.** Movement is grounded by raycasts, not a physics engine, to keep
+  the bundle light: a downward ray finds the surface (terrain + house floors)
+  for gravity and jumps, and a forward ray slides the body off walls. `Scene`
+  registers the house shell and terrain GLBs into a collider list the controller
+  raycasts against; mobs, props, and panels are excluded on purpose.
+- **Interaction.** Content panels and the terminal register a target (position,
+  title, modal) in `stores/interactionStore`; the controller surfaces the
+  nearest in range to the `InteractPrompt` overlay and opens it on the E press
+  edge. Pointer click/tap remains as a fallback.
 
 ## Key decisions
 

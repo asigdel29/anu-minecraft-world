@@ -1,18 +1,30 @@
 # anu-minecraft-world
 
-Anu's interactive 3D portfolio — a scroll-driven Minecraft scene rendered in
-the browser with [React Three Fiber](https://r3f.docs.pmnd.rs/).
+Anu's interactive 3D portfolio — an explorable Minecraft world you walk around
+in the browser, rendered with [React Three Fiber](https://r3f.docs.pmnd.rs/).
 
-The centrepiece is a three-storey, Kathmandu-style brick house in the Minecraft
-voxel idiom. Scrolling **enters through the front door and climbs the interior
-atrium floor by floor**, with content framed on each level: about + manual on
-the ground floor, projects on the middle floor, and links + a reading shelf on
-the top floor — plus a clickable vintage computer that opens a guestbook. The
-grounds are dressed with a walled garden, gate, trees, a garage, a flat rooftop
-(water tank, solar panels, satellite dish), prayer flags, lighting, an idling
-dog, drifting birds, and chimney smoke.
+You control a classic blocky character in third person and **explore the grounds
+and house freely**. The centrepiece is a three-storey, Kathmandu-style brick
+house in the Minecraft voxel idiom; walk through the front door and up the
+floors to find content framed on each level: about + manual on the ground
+floor, projects on the middle floor, and links + a reading shelf on the top
+floor — plus a vintage computer that opens a guestbook. Walk up to any of them
+and press **E** (or tap/click) to open it. The grounds are dressed with a walled
+garden, gate, trees, a garage, a flat rooftop (water tank, solar panels,
+satellite dish), prayer flags, lighting, an idling dog, drifting birds, and
+chimney smoke.
 
 Live: [sigdel.world](https://sigdel.world)
+
+## Controls
+
+- **Move** — `W` `A` `S` `D` or the arrow keys (on touch, the on-screen
+  joystick); movement is relative to the camera.
+- **Look** — drag the mouse / a finger to orbit the third-person camera; the
+  wheel zooms.
+- **Jump** — `Space` (or the on-screen button).
+- **Interact** — walk up to a panel or the guestbook and press `E`; clicking or
+  tapping it still works too.
 
 The interior content (which framed panel sits on which floor, its image, and the
 modal it opens) is defined in one place — [`src/data/floors.js`](src/data/floors.js).
