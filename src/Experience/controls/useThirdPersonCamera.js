@@ -31,9 +31,10 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
  *   orbit around `target` (a THREE.Vector3) and looks at the head.
  */
 export function useThirdPersonCamera() {
-  const yaw = useRef(Math.PI); // start behind the character (facing the house)
+  const yaw = useRef(0); // start behind the character (facing the house)
   const pitch = useRef(0.35);
   const distance = useRef(9);
+  const isDragging = useRef(false);
 
   // Scratch objects reused each frame so `apply` allocates nothing.
   const aim = useRef(new THREE.Vector3());
@@ -49,6 +50,7 @@ export function useThirdPersonCamera() {
     const onDown = (event) => {
       if (event.button !== undefined && event.button !== 0) return;
       dragging = true;
+      isDragging.current = true;
       lastX = event.clientX;
       lastY = event.clientY;
     };
@@ -65,6 +67,7 @@ export function useThirdPersonCamera() {
     };
     const onUp = () => {
       dragging = false;
+      isDragging.current = false;
     };
     const onWheel = (event) => {
       distance.current = clamp(
@@ -89,8 +92,18 @@ export function useThirdPersonCamera() {
   // Place the camera on its orbit around `target`, looking at the head. If
   // `colliders` are given and the house wall would sit between the head and the
   // camera, pull the camera in to the wall so the view never clips inside.
-  const apply = (camera, target, colliders) => {
+  const apply = (camera, target, playerYaw, isMoving, step, colliders) => {
     aim.current.set(target.x, target.y + LOOK_HEIGHT, target.z);
+
+    // Auto-follow: smoothly rotate the camera yaw to align behind the player when moving
+    if (isMoving && !isDragging.current) {
+      let targetYaw = playerYaw + Math.PI;
+      let diff = targetYaw - yaw.current;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff)); // shortest path
+      const followSpeed = 2.0; // gentle auto-follow speed
+      yaw.current += diff * Math.min(1, followSpeed * step);
+    }
+
     const cosPitch = Math.cos(pitch.current);
     desired.current.set(
       target.x + distance.current * Math.sin(yaw.current) * cosPitch,

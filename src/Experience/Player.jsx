@@ -139,9 +139,73 @@ export default function Player({ colliders }) {
       move.current.normalize();
       const speed = held.run ? RUN_SPEED : WALK_SPEED;
       disp.current.copy(move.current).multiplyScalar(speed * step);
-      slideOffWalls(disp.current, list);
-      position.current.x += disp.current.x;
-      position.current.z += disp.current.z;
+
+      // --- Step Up / Stair Climbing Algorithm ---
+      const oldX = position.current.x;
+      const oldY = position.current.y;
+      const oldZ = position.current.z;
+
+      // 1. Try normal horizontal movement with sliding
+      let tempDisp = disp.current.clone();
+      slideOffWalls(tempDisp, list);
+
+      const originalLen = disp.current.length();
+      const slidLen = tempDisp.length();
+
+      // If we were blocked/reduced by more than 5%, try to step up over the obstacle
+      if (slidLen < originalLen * 0.95) {
+        const MAX_STEP_HEIGHT = 0.5;
+        // Temporarily raise the character
+        position.current.y += MAX_STEP_HEIGHT;
+
+        // Try the horizontal move again at the raised height
+        let stepUpDisp = disp.current.clone();
+        slideOffWalls(stepUpDisp, list);
+
+        // If stepping up allowed us to move further forward horizontally
+        if (stepUpDisp.length() > slidLen) {
+          position.current.x += stepUpDisp.x;
+          position.current.z += stepUpDisp.z;
+
+          // Find the ground height at this new position
+          let groundY = null;
+          if (list && list.length) {
+            rayOrigin.current.set(
+              position.current.x,
+              position.current.y + RAY_ABOVE,
+              position.current.z
+            );
+            raycaster.current.set(rayOrigin.current, DOWN);
+            raycaster.current.far = RAY_FAR + MAX_STEP_HEIGHT;
+            const hits = raycaster.current.intersectObjects(list, true);
+            if (hits.length) groundY = hits[0].point.y;
+          }
+
+          // If valid ground is found and it's within step limits
+          if (
+            groundY !== null &&
+            groundY <= oldY + MAX_STEP_HEIGHT &&
+            groundY >= oldY - 0.1
+          ) {
+            // Success! Walk on the new stepped ground
+            position.current.y = groundY;
+          } else {
+            // Step up invalid, revert and apply normal horizontal slide
+            position.current.x = oldX + tempDisp.x;
+            position.current.y = oldY;
+            position.current.z = oldZ + tempDisp.z;
+          }
+        } else {
+          // Raising didn't help, revert and apply normal horizontal slide
+          position.current.x = oldX + tempDisp.x;
+          position.current.y = oldY;
+          position.current.z = oldZ + tempDisp.z;
+        }
+      } else {
+        // Apply normal horizontal slide directly
+        position.current.x += tempDisp.x;
+        position.current.z += tempDisp.z;
+      }
 
       // Turn the body toward the intended travel direction (not the slid one),
       // so it keeps facing where the player is steering while brushing a wall.
@@ -243,7 +307,14 @@ export default function Player({ colliders }) {
     // Place the orbit camera last, after this frame's position is settled, so
     // it tracks the character without a frame of lag; pass the colliders so it
     // can pull in when the house would come between the camera and the head.
-    orbitCamera.apply(camera, position.current, colliders);
+    orbitCamera.apply(
+      camera,
+      position.current,
+      yaw.current,
+      isMoving,
+      step,
+      colliders
+    );
   });
 
   return (
