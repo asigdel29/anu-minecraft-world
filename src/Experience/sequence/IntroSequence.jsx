@@ -19,6 +19,8 @@ import { STAGES, useSequenceStore } from "./sequenceStore";
 import { SCREEN_CENTER } from "./layout";
 import LogoWall from "./LogoWall";
 import TextScreen from "./TextScreen";
+import BattleshipBlock from "../battleship/BattleshipBlock";
+import BattleshipBoard from "../battleship/BattleshipBoard";
 import { playBlockBreak } from "../../utils/sequenceAudio";
 import { playerState } from "../controls/playerState";
 
@@ -66,6 +68,8 @@ export default function IntroSequence() {
     <>
       <LogoWall />
       <TextScreen />
+      <BattleshipBlock />
+      <BattleshipBoard />
     </>
   );
 }

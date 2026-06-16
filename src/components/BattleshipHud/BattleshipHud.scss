@@ -1,0 +1,121 @@
+// File: src/components/BattleshipHud/BattleshipHud.scss
+//
+// Sentience world — styles for the in-world Battleship HUD.
+//
+// Change history:
+//   2026-06-16  asigdel29   Add Battleship HUD styles.
+
+.bs-hud {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: "Minecraft", system-ui, sans-serif;
+
+  button,
+  input {
+    pointer-events: auto;
+  }
+
+  &--bar {
+    align-items: flex-start;
+    justify-content: center;
+  }
+}
+
+.bs-panel {
+  pointer-events: auto;
+  background: rgba(10, 14, 46, 0.92);
+  border: 2px solid #2a9d8f;
+  border-radius: 12px;
+  padding: 1.6rem 2rem;
+  text-align: center;
+  color: #e9ecef;
+
+  h2 {
+    margin: 0 0 1rem;
+  }
+}
+
+.bs-buttons {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.bs-bar {
+  pointer-events: auto;
+  margin-top: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: rgba(10, 14, 46, 0.9);
+  border: 1px solid #2a9d8f;
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  color: #e9ecef;
+  max-width: 95vw;
+  flex-wrap: wrap;
+}
+
+.bs-status {
+  font-weight: 600;
+}
+
+.bs-result {
+  color: #ffd166;
+}
+
+.bs-error {
+  color: #ef476f;
+}
+
+.bs-spacer {
+  flex: 1;
+}
+
+.bs-hud button {
+  background: #2a9d8f;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.bs-hud .bs-ghost {
+  background: transparent;
+  border: 1px solid #6b7280;
+}
+
+.bs-invite {
+  pointer-events: auto;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(10, 14, 46, 0.9);
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  color: #8d99ae;
+  font-size: 0.85rem;
+
+  input {
+    width: 320px;
+    max-width: 50vw;
+    background: #11202f;
+    border: 1px solid #495057;
+    border-radius: 6px;
+    color: #e9ecef;
+    padding: 0.3rem 0.5rem;
+  }
+}
