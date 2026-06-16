@@ -13,6 +13,7 @@ import Player from "./Player";
 import GateSign from "./GateSign";
 import Terminal3D from "./Terminal3D";
 import AmbientLife from "./AmbientLife";
+import IntroSequence from "./sequence/IntroSequence";
 
 // The world is static, baked geometry. It used to be toured by a scripted
 // camera that scrolling slid along a spline; that path (and its rotation
@@ -89,6 +90,10 @@ const Scene = () => {
       <Suspense fallback={null}>
         <Mobs />
       </Suspense>
+      {/* The branded guided walkthrough: giant Sentience logo block that
+          shatters, the message screen, and the battleship block. Procedural
+          voxel cubes (so they can break apart), driven by the sequence store. */}
+      <IntroSequence />
       {/* The controllable character. It owns the camera each frame and raycasts
           against the registered colliders to follow the ground. */}
       <Suspense fallback={null}>

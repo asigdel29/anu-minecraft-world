@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 
 import PlayerModel from "./models/PlayerT";
 import { useKeyboard } from "./controls/useKeyboard";
+import { playerState } from "./controls/playerState";
 import { useThirdPersonCamera } from "./controls/useThirdPersonCamera";
 import { useModalStore } from "./stores/modalStore";
 import {
@@ -263,6 +264,13 @@ export default function Player({ colliders }) {
 
     const nextAction = !grounded.current ? "jump" : isMoving ? "walk" : "idle";
     if (nextAction !== action) setAction(nextAction);
+
+    // Publish the live transform for the guided sequence and multiplayer
+    // presence (read-only consumers; never triggers a re-render).
+    playerState.position.copy(position.current);
+    playerState.yaw = yaw.current;
+    playerState.action = nextAction;
+    playerState.moving = isMoving;
 
     // Footsteps on a cadence while walking on the ground.
     if (isMoving && grounded.current && !isModalOpen) {
