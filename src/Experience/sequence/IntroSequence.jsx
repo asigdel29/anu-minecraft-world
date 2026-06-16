@@ -21,6 +21,7 @@ import LogoWall from "./LogoWall";
 import TextScreen from "./TextScreen";
 import BattleshipBlock from "../battleship/BattleshipBlock";
 import BattleshipBoard from "../battleship/BattleshipBoard";
+import RemotePlayers from "../multiplayer/RemotePlayers";
 import { playBlockBreak } from "../../utils/sequenceAudio";
 import { playerState } from "../controls/playerState";
 
@@ -64,12 +65,15 @@ export default function IntroSequence() {
     }
   });
 
+  const openWorld = stage === STAGES.BATTLESHIP || stage === STAGES.OPEN_WORLD;
+
   return (
     <>
       <LogoWall />
       <TextScreen />
       <BattleshipBlock />
       <BattleshipBoard />
+      {openWorld && <RemotePlayers />}
     </>
   );
 }
