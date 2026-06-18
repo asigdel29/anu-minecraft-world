@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
+import { Text, Billboard } from "@react-three/drei";
 
 import PlayerModel from "./models/PlayerT";
 import { useKeyboard } from "./controls/useKeyboard";
@@ -12,6 +13,7 @@ import {
   useInteractionStore,
 } from "./stores/interactionStore";
 import { playFootstep } from "../utils/footsteps";
+import { useCharacterStore } from "./stores/characterStore";
 
 // The character walks the world's baked geometry: a downward ray finds the
 // surface under it each frame so it follows the uneven lawn and climbs onto the
@@ -47,7 +49,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 
-export default function Player({ colliders }) {
+export default function Player({ colliders, sendState }) {
   const group = useRef();
   const keys = useKeyboard();
   const orbitCamera = useThirdPersonCamera();
@@ -55,6 +57,13 @@ export default function Player({ colliders }) {
   const { isModalOpen } = useModalStore();
   const setPrompt = useInteractionStore((state) => state.setPrompt);
   const [action, setAction] = useState("idle");
+
+  // Character appearance from the local store.
+  const username = useCharacterStore((s) => s.username);
+  const headColor = useCharacterStore((s) => s.headColor);
+  const bodyColor = useCharacterStore((s) => s.bodyColor);
+  const legColor = useCharacterStore((s) => s.legColor);
+  const colors = { headColor, bodyColor, legColor };
 
   // Live state kept in refs so per-frame motion never triggers a re-render.
   const position = useRef(SPAWN.clone());
@@ -264,6 +273,16 @@ export default function Player({ colliders }) {
     const nextAction = !grounded.current ? "jump" : isMoving ? "walk" : "idle";
     if (nextAction !== action) setAction(nextAction);
 
+    // Broadcast local state to other players via the multiplayer hook.
+    if (sendState) {
+      sendState({
+        pos: [position.current.x, position.current.y, position.current.z],
+        yaw: yaw.current,
+        action: nextAction,
+        character: { username, headColor, bodyColor, legColor },
+      });
+    }
+
     // Footsteps on a cadence while walking on the ground.
     if (isMoving && grounded.current && !isModalOpen) {
       stepTimer.current += step;
@@ -319,7 +338,22 @@ export default function Player({ colliders }) {
 
   return (
     <group ref={group}>
-      <PlayerModel action={action} />
+      <PlayerModel action={action} colors={colors} />
+      {username && (
+        <Billboard position={[0, 2.4, 0]} follow lockX={false} lockY={false} lockZ={false}>
+          <Text
+            font="/fonts/Minecraft-Regular.ttf"
+            fontSize={0.18}
+            color="#ffe16b"
+            anchorX="center"
+            anchorY="bottom"
+            outlineWidth={0.012}
+            outlineColor="#1a1a1a"
+          >
+            {username}
+          </Text>
+        </Billboard>
+      )}
     </group>
   );
 }

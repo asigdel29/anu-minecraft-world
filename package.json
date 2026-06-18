@@ -7,7 +7,8 @@
     "dev": "vite --host",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "party": "npx partykit dev"
   },
   "dependencies": {
     "@react-three/drei": "^9.120.4",
@@ -32,6 +33,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.12.0",
+    "partykit": "^0.0.111",
     "vite": "^6.0.1"
   }
 }

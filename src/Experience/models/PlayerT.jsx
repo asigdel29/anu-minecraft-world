@@ -17,9 +17,24 @@ import { useGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 // hard-edged Minecraft texture instead of a blurred gradient. Converting on the
 // loaded scene's meshes (rather than the cached materials dict) keeps the
 // animated node hierarchy intact for `useAnimations`.
-const toUnlitPixelMaterial = (scene) => {
+
+// Classify a node into a body zone by walking up its ancestors to find a named
+// group. Returns "head", "body", or "leg" (arm nodes get body colour).
+const classifyZone = (object) => {
+  let cur = object;
+  while (cur) {
+    const n = (cur.name || "").toLowerCase();
+    if (n.includes("head")) return "head";
+    if (n.includes("leg") || n.includes("ll") || n.includes("rl")) return "leg";
+    if (n.includes("arm") || n.includes("body")) return "body";
+    cur = cur.parent;
+  }
+  return "body"; // fallback
+};
+
+const toUnlitPixelMaterial = (scene, colors) => {
   scene.traverse((object) => {
-    if (!object.isMesh || object.material.userData.__playerBasic) return;
+    if (!object.isMesh) return;
     const map = object.material.map || object.material.emissiveMap || null;
     if (map) {
       map.magFilter = THREE.NearestFilter;
@@ -28,16 +43,28 @@ const toUnlitPixelMaterial = (scene) => {
       map.needsUpdate = true;
     }
     const basic = new THREE.MeshBasicMaterial({ map });
-    basic.userData.__playerBasic = true;
+
+    // Apply colour tint per body zone if provided.
+    if (colors) {
+      const zone = classifyZone(object);
+      if (zone === "head" && colors.headColor) {
+        basic.color = new THREE.Color(colors.headColor);
+      } else if (zone === "body" && colors.bodyColor) {
+        basic.color = new THREE.Color(colors.bodyColor);
+      } else if (zone === "leg" && colors.legColor) {
+        basic.color = new THREE.Color(colors.legColor);
+      }
+    }
+
     object.material = basic;
   });
 };
 
-export default function Player({ action = "idle", ...props }) {
+export default function Player({ action = "idle", colors, ...props }) {
   const group = useRef();
   const { scene, animations } = useGLTFWithKTX2("/models/PlayerT.glb");
 
-  useMemo(() => toUnlitPixelMaterial(scene), [scene]);
+  useMemo(() => toUnlitPixelMaterial(scene, colors), [scene, colors]);
 
   const { actions } = useAnimations(animations, group);
 
@@ -54,3 +81,4 @@ export default function Player({ action = "idle", ...props }) {
     </group>
   );
 }
+
