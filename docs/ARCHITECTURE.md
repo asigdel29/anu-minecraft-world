@@ -1,13 +1,21 @@
 # Architecture
 
-`anu-minecraft-world` is a static single-page application: an explorable 3D
+`anu-minecraft-world` is a single-page application: an explorable 3D
 Minecraft world rendered with React Three Fiber, driven by a controllable
 third-person character, with HTML overlay UI (loading screen, controls hint,
 interaction prompt, touch controls, modals, buttons) layered on top.
 
+The site itself is static (no backend on Vercel). Optional **multiplayer
+presence** — seeing other visitors walk around, with character customization
+and chat — is provided by a small, separate PartyKit WebSocket server (see
+"Multiplayer" below). The server is optional: if it is unreachable or
+unconfigured, the client logs a warning and runs solo, so the static site
+keeps working unchanged.
+
 ## Directory layout
 
 ```
+party/             PartyKit multiplayer server (server.js) — see "Multiplayer"
 public/            Static, un-hashed assets served as-is
   models/          KTX2-textured, Draco-compressed glTF scene meshes
   basis/           Basis/KTX2 WebAssembly transcoder (vendored)
@@ -20,17 +28,22 @@ src/
   main.jsx         React entry
   App.jsx          Composition root; lazy-loads the 3D experience
   components/      Presentational UI (modals, buttons, loading screen,
-                   controls hint, interaction prompt, touch controls)
+                   controls hint, interaction prompt, touch controls,
+                   character customizer, chat overlay, share/customize buttons)
   data/            Content (projects, about, info, links, books) — no JSX
   Experience/      React Three Fiber scene
     Experience.jsx Canvas + default camera (driven by the controller)
     Scene.jsx      Model composition + the collider registry
-    Player.jsx     Character controller (movement, gravity, collision, interact)
+    Player.jsx     Character controller (movement, gravity, collision, interact,
+                   multiplayer state broadcast)
+    RemotePlayer.jsx   One other visitor: interpolated rig + name/chat bubble
+    RemotePlayers.jsx  Renders every remote player tracked in the store
     WallText.jsx   In-world signage overlay (see "Baked text" below)
     controls/      Input + camera rig (useKeyboard, inputState,
                    useThirdPersonCamera)
     models/        gltfjsx-generated model components (incl. the player rig)
-    stores/        Zustand stores (audio, modal, interaction)
+    stores/        Zustand stores (audio, modal, interaction, character,
+                   multiplayer)
     utils/         Material conversion + KTX2-aware glTF loader
   utils/           Cross-cutting helpers (audio system, footsteps, text parsing)
   styles/          Global SCSS (variables, fonts, reset)
@@ -61,6 +74,40 @@ camera path. The pieces, all under `Experience/`:
   nearest in range to the `InteractPrompt` overlay and opens it on the E press
   edge. Pointer click/tap remains as a fallback.
 
+## Multiplayer
+
+Presence is best-effort and entirely client-driven; the server keeps no
+durable state. The pieces:
+
+- **Server.** `party/server.js` is a [PartyKit](https://www.partykit.io/)
+  handler that runs a single shared room named `world`. It is a pure relay: on
+  `onConnect` it announces a `join` and sends the newcomer the list of existing
+  peers; on `onMessage` it re-broadcasts the message (tagged with the sender's
+  connection id) to everyone else; on `onClose` it broadcasts a `leave`. It
+  stores nothing and inspects no payloads. `partykit.json` points `main` at it.
+- **Client transport.** `Experience/stores/useMultiplayer.jsx` owns the single
+  WebSocket (kept at module scope so both the R3F `Player` and the DOM-level
+  `ChatOverlay` send through it). It connects to `VITE_PARTYKIT_HOST`, and on a
+  failed connection logs a warning and degrades to solo. `Player` calls
+  `sendState` every frame; it is throttled to **10 Hz** (`SEND_INTERVAL`) and
+  broadcasts position, yaw, action, and character appearance. Inbound `state`,
+  `join`, `leave`, and `chat` messages update a Zustand store.
+- **Rendering remotes.** The store holds `remotePlayers` keyed by connection id.
+  `RemotePlayers` maps it to a `RemotePlayer` each — a player rig that
+  interpolates toward the latest position/yaw, plays the broadcast action clip,
+  tints to the peer's colors, and floats a name tag plus a transient chat
+  bubble.
+- **Identity.** `stores/characterStore.jsx` holds the local username and
+  head/body/leg colors, persisted to `localStorage` (`mc-character`). First
+  visit (no saved character) auto-opens the `CharacterCustomizer` modal;
+  `CustomizeButton` reopens it later. The appearance rides along on every state
+  broadcast so peers render the right colors.
+- **Chat + activity.** `ChatOverlay` sends `chat` messages and shows the recent
+  activity log (joins, leaves, messages); the same log feeds the in-world
+  terminal. `ShareButton` copies the world URL so others can join the room.
+  All remote-supplied strings (chat text, usernames) are rendered as React text
+  children — never `dangerouslySetInnerHTML` — so they are escaped on display.
+
 ## Key decisions
 
 - **Content/presentation split.** All page copy lives in `src/data/` so it can
@@ -69,9 +116,11 @@ camera path. The pieces, all under `Experience/`:
   `three` and `@react-three/*` as separate content-hashed vendor chunks
   (`vite.config.js`). The initial entry chunk is ~60 kB; the heavy 3D bundle
   downloads in parallel while the loading screen paints.
-- **Caching / cost.** The site is static, so Vercel runs no serverless
-  functions (no compute billing). `vercel.json` caches hashed `/assets`
-  immutably for a year and stable public media for a week.
+- **Caching / cost.** The Vercel deploy is static — no serverless functions, no
+  compute billing. `vercel.json` caches hashed `/assets` immutably for a year
+  and stable public media for a week. Multiplayer runs on PartyKit, a separate
+  service from the Vercel host; because it is optional and the client falls back
+  to solo, the static site has no hard dependency on it.
 
 ## Baked text (signage)
 

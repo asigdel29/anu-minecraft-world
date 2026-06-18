@@ -1,19 +1,24 @@
 # Security Review
 
 This document records the security review performed on `anu-minecraft-world`.
-The application is a **fully static single-page site** (no server, no API, no
-authentication, no user input persisted anywhere), which keeps the attack
-surface small.
+The application is a **static single-page site** served from a CDN — no Vercel
+backend, no authentication, no database. The one piece of server code is a
+**relay-only PartyKit WebSocket server** (`party/server.js`) that powers
+optional multiplayer presence and chat; it persists nothing and inspects no
+payloads. This keeps the attack surface small. The relevant surfaces are
+covered below.
 
 ## Threat model
 
 | Surface | Assessment |
 | --- | --- |
-| Server-side code | None. The site is static files served from a CDN; there are no serverless functions, so no server-side injection, SSRF, or auth surface. |
-| User input | None is accepted or stored. All copy is build-time constant data under `src/data/`. |
+| Vercel backend | None. The site is static files served from a CDN; there are no serverless functions, so no server-side injection, SSRF, or auth surface on the host. |
+| Multiplayer server | `party/server.js` is a relay-only PartyKit room: it tags messages with the sender's connection id and re-broadcasts them, storing nothing and parsing no field beyond the envelope. There is no authentication and no persistence, so there is no account, session, or stored-data surface. Payloads are untrusted and treated as such on the client (see XSS / Untrusted peer data). |
+| User input | Chat messages, a username, and character colors. None is persisted server-side; the character is saved only to the sender's `localStorage`. Chat input is length-capped (`maxLength` 120). All other copy is build-time constant data under `src/data/`. |
+| Cross-site scripting | Content is rendered as React elements; `parseText` builds elements, never `dangerouslySetInnerHTML`. |
+| Untrusted peer data | Strings arriving over the WebSocket (chat text, usernames) are rendered as React text children in the chat overlay, in-world chat bubbles, and the terminal activity log — never via `dangerouslySetInnerHTML` — so React escapes them on display. Numeric peer state (position, yaw) only drives transforms. A peer cannot inject markup or script into another client. |
 | Third-party scripts | None loaded at runtime. All JavaScript is first-party and bundled; no external `<script>` tags. |
-| Secrets | None. No `.env` files, API keys, or tokens in the repository (verified by scan). |
-| Cross-site scripting | Content is rendered as React elements; `parseText` builds elements, never `dangerouslySetInnerHTML`. No user-controlled strings reach the DOM. |
+| Secrets | None. No API keys or tokens in the repository (verified by scan); `.env.example` lists only public `VITE_`-prefixed config (PostHog, PartyKit host), all client-visible by design. |
 | Reverse tabnabbing | All `target="_blank"` links use `rel="noopener noreferrer"`. |
 | Clickjacking | `X-Frame-Options: SAMEORIGIN` and CSP `frame-ancestors 'none'`. |
 
@@ -26,6 +31,8 @@ surface small.
   in `script-src`/`worker-src`/`child-src`/`connect-src` (the transcoders run in
   blob-URL workers that fetch their payloads via blob:/data:). The Draco decoder
   is **self-hosted** under `public/draco/`, so no external origin is needed.
+  `connect-src` also allows `wss://*.partykit.dev` for the multiplayer
+  WebSocket; it is scoped to the PartyKit origin and to the `wss:` scheme only.
   `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`.
   Trade-off: `'unsafe-eval'` weakens XSS defense-in-depth, but the site accepts
   no user input and loads no third-party scripts, so the practical exposure is
