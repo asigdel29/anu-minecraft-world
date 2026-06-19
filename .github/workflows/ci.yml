@@ -1,0 +1,31 @@
+name: CI
+
+# Pull-request gate for the Vite/React app: lint, production build, and unit
+# tests must all pass before a branch can merge. There is no server-side suite
+# to run here (the multiplayer relay is a separate Cloudflare/PartyKit deploy),
+# so the gate stays fast and dependency-light.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Only the latest commit on a branch needs checking; cancel superseded runs.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Lint, build, test
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
