@@ -10,6 +10,7 @@ import InfoButton from "./components/InfoButton/InfoButton";
 import ControlsHint from "./components/ControlsHint/ControlsHint";
 import InteractPrompt from "./components/InteractPrompt/InteractPrompt";
 import TouchControls from "./components/TouchControls/TouchControls";
+import OrientationHint from "./components/OrientationHint/OrientationHint";
 import CustomizeButton from "./components/CustomizeButton/CustomizeButton";
 import ShareButton from "./components/ShareButton/ShareButton";
 import ChatOverlay from "./components/Chat/ChatOverlay";
@@ -53,6 +54,7 @@ function App() {
       <ControlsHint />
       <InteractPrompt />
       <TouchControls />
+      <OrientationHint />
       <ChatOverlay />
       <Modal />
       <Suspense fallback={null}>

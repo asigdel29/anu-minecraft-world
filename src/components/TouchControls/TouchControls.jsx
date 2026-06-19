@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import "./TouchControls.scss";
 
 import { input } from "../../Experience/controls/inputState";
+import { isCoarsePointer } from "../../Experience/controls/orientation";
 
 // Joystick geometry and dead zone. The thumb is clamped to RADIUS px from the
 // base centre; a push past DEAD (as a fraction of RADIUS) along an axis sets
@@ -10,18 +11,15 @@ import { input } from "../../Experience/controls/inputState";
 const RADIUS = 46;
 const DEAD = 0.28;
 
-const isCoarsePointer = () =>
-  typeof window !== "undefined" &&
-  window.matchMedia &&
-  window.matchMedia("(pointer: coarse)").matches;
-
 /**
  * On-screen controls for touch devices: a left-hand virtual joystick that
- * drives the same movement input the keyboard does, and a jump button. Looking
- * around already works on touch via the camera rig's pointer listeners, so the
- * rest of the screen drags the camera; these controls call `stopPropagation`
- * so touching them never also orbits the camera. Rendered only on a coarse
- * pointer, and never on a mouse.
+ * drives the same movement input the keyboard does, plus jump and interact
+ * buttons. Looking around already works on touch via the camera rig's pointer
+ * listeners, so the rest of the screen drags the camera; these controls call
+ * `stopPropagation` so touching them never also orbits the camera. Rendered
+ * only on a coarse pointer, and never on a mouse. The layout is tuned for
+ * landscape (see TouchControls.scss); the OrientationHint nudges the visitor to
+ * rotate when in portrait.
  */
 const TouchControls = () => {
   const [coarse] = useState(isCoarsePointer);
@@ -81,6 +79,13 @@ const TouchControls = () => {
     input.jump = held;
   };
 
+  // The interact button mirrors the E key: Player edge-detects input.interact,
+  // so a press-then-release opens the nearest target exactly once.
+  const setInteract = (held) => (event) => {
+    event.stopPropagation();
+    input.interact = held;
+  };
+
   return (
     <div className="touch-controls" aria-hidden="true">
       <div
@@ -93,6 +98,16 @@ const TouchControls = () => {
       >
         <div ref={thumbRef} className="touch-joystick-thumb" />
       </div>
+      <button
+        type="button"
+        className="touch-interact"
+        onPointerDown={setInteract(true)}
+        onPointerUp={setInteract(false)}
+        onPointerCancel={setInteract(false)}
+        onPointerLeave={setInteract(false)}
+      >
+        Use
+      </button>
       <button
         type="button"
         className="touch-jump"

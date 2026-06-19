@@ -38,10 +38,11 @@
   box-shadow: inset 1px 1px #ffffff30, inset -1px -1px #00000060;
 }
 
-.touch-jump {
+// Jump and interact share a round, pixel-styled face. Jump sits lowest on the
+// right; interact stacks just above and inboard so the thumb reaches both.
+.touch-jump,
+.touch-interact {
   position: fixed;
-  right: 28px;
-  bottom: 40px;
   z-index: 95;
   pointer-events: auto;
   touch-action: none;
@@ -56,4 +57,42 @@
   background-color: styles.$color-base-overlay-gray;
   border: 2px solid styles.$color-base-dark-gray-four;
   box-shadow: inset 2px 2px #ffffff20, inset -2px -2px #00000060;
+}
+
+.touch-jump {
+  right: 28px;
+  bottom: 40px;
+}
+
+.touch-interact {
+  right: 128px;
+  bottom: 64px;
+  width: 76px;
+  height: 76px;
+}
+
+// Landscape is the intended posture for play: drop the controls a little nearer
+// the bottom corners and shrink them slightly so they stay clear of the world,
+// especially on short (phone) landscape viewports.
+@media (orientation: landscape) and (max-height: 480px) {
+  .touch-joystick {
+    bottom: 18px;
+    left: 20px;
+    width: 104px;
+    height: 104px;
+  }
+
+  .touch-jump {
+    bottom: 24px;
+    right: 22px;
+    width: 76px;
+    height: 76px;
+  }
+
+  .touch-interact {
+    bottom: 44px;
+    right: 110px;
+    width: 66px;
+    height: 66px;
+  }
 }
