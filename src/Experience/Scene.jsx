@@ -13,6 +13,7 @@ import Player from "./Player";
 import GateSign from "./GateSign";
 import Terminal3D from "./Terminal3D";
 import AmbientLife from "./AmbientLife";
+import { useMultiplayer } from "./stores/useMultiplayer";
 
 // The world is static, baked geometry. It used to be toured by a scripted
 // camera that scrolling slid along a spline; that path (and its rotation
@@ -20,6 +21,10 @@ import AmbientLife from "./AmbientLife";
 // character controller in Player.jsx, so Scene just composes the world.
 const Scene = () => {
   const houseRef = useRef();
+
+  // Multiplayer presence — opens the relay socket and returns the throttled
+  // state broadcaster the Player feeds. Runs solo when no host is configured.
+  const { sendState } = useMultiplayer();
 
   // The character raycasts straight down against this list to find the ground.
   // The house shell and the three terrain GLBs register here as they mount; the
@@ -92,7 +97,7 @@ const Scene = () => {
       {/* The controllable character. It owns the camera each frame and raycasts
           against the registered colliders to follow the ground. */}
       <Suspense fallback={null}>
-        <Player colliders={colliders} />
+        <Player colliders={colliders} sendState={sendState} />
       </Suspense>
     </>
   );
