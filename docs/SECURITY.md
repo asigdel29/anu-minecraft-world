@@ -1,19 +1,23 @@
 # Security Review
 
 This document records the security review performed on `anu-minecraft-world`.
-The application is a **fully static single-page site** (no server, no API, no
-authentication, no user input persisted anywhere), which keeps the attack
-surface small.
+The application is a **static single-page site** served from a CDN — no Vercel
+backend, no authentication, no database. The one piece of server code is a
+**relay-only Cloudflare Worker** (`worker.js`) that powers optional multiplayer
+presence and chat; it persists nothing and inspects no payloads. This keeps the
+attack surface small. The relevant surfaces are covered below.
 
 ## Threat model
 
 | Surface | Assessment |
 | --- | --- |
-| Server-side code | None. The site is static files served from a CDN; there are no serverless functions, so no server-side injection, SSRF, or auth surface. |
-| User input | None is accepted or stored. All copy is build-time constant data under `src/data/`. |
+| Vercel backend | None. The site is static files served from a CDN; there are no serverless functions, so no server-side injection, SSRF, or auth surface on the host. |
+| Multiplayer relay | `worker.js` is a relay-only Cloudflare Worker + Durable Object: it tags messages with the sender's connection id and re-broadcasts them, storing nothing and parsing no field beyond the envelope. There is no authentication and no persistence, so there is no account, session, or stored-data surface. Payloads are untrusted and treated as such on the client (see XSS / Untrusted peer data). |
+| User input | Chat messages, a username, and character colors. None is persisted server-side; the character is saved only to the sender's `localStorage`. Inputs are sanitised before they are stored or sent: chat is length-capped (`clampChat`, 120), usernames are trimmed and length-capped (`sanitizeUsername`, 16), and colors must be 6-digit hex (`sanitizeCharacterUpdate`) — an invalid value is dropped rather than applied. All other copy is build-time constant data under `src/data/`. |
+| Cross-site scripting | Content is rendered as React elements; `parseText` builds elements, never `dangerouslySetInnerHTML`. |
+| Untrusted peer data | Strings arriving over the WebSocket (chat text, usernames) are rendered as React text children in the chat overlay, in-world chat bubbles, and the terminal activity log — never via `dangerouslySetInnerHTML` — so React escapes them on display. Numeric peer state (position, yaw) only drives transforms. A peer cannot inject markup or script into another client. |
 | Third-party scripts | None loaded at runtime. All JavaScript is first-party and bundled; no external `<script>` tags. |
-| Secrets | None. No `.env` files, API keys, or tokens in the repository (verified by scan). |
-| Cross-site scripting | Content is rendered as React elements; `parseText` builds elements, never `dangerouslySetInnerHTML`. No user-controlled strings reach the DOM. |
+| Secrets | None in the repository (verified by scan); `.env.example` lists only public `VITE_`-prefixed config (PostHog, multiplayer relay host), all client-visible by design. The relay's deploy credentials (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) live only as GitHub Actions secrets, never in the repo or the client bundle. |
 | Reverse tabnabbing | All `target="_blank"` links use `rel="noopener noreferrer"`. |
 | Clickjacking | `X-Frame-Options: SAMEORIGIN` and CSP `frame-ancestors 'none'`. |
 
@@ -26,6 +30,9 @@ surface small.
   in `script-src`/`worker-src`/`child-src`/`connect-src` (the transcoders run in
   blob-URL workers that fetch their payloads via blob:/data:). The Draco decoder
   is **self-hosted** under `public/draco/`, so no external origin is needed.
+  `connect-src` also allows `wss://anu-minecraft-world.anubhavsigdel.workers.dev`
+  for the multiplayer WebSocket; it is scoped to that exact relay host and to the
+  `wss:` scheme only.
   `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`.
   Trade-off: `'unsafe-eval'` weakens XSS defense-in-depth, but the site accepts
   no user input and loads no third-party scripts, so the practical exposure is

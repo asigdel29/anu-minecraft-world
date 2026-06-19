@@ -26,9 +26,9 @@ export default function Terminal3D() {
   useEffect(() => {
     return registerInteractable({
       id: "terminal",
-      title: "Guestbook",
+      title: "World Log",
       position: new Vector3(POS[0], POS[1], POS[2]),
-      open: () => openModal("Terminal", <Terminal />, "terminal"),
+      open: () => openModal("World Log", <Terminal />, "terminal"),
     });
     // openModal is stable, so this registers once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,7 +46,7 @@ export default function Terminal3D() {
         maxWidth={1.05}
         textAlign="center"
       >
-        {"> guestbook\n> click me :)"}
+        {"> world log\n> click me :)"}
       </Text>
       <mesh
         position={[0, 0, 0.06]}

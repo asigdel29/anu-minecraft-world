@@ -2,16 +2,23 @@ import { useRef, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
+import { Text, Billboard } from "@react-three/drei";
 
 import PlayerModel from "./models/PlayerT";
 import { useKeyboard } from "./controls/useKeyboard";
 import { useThirdPersonCamera } from "./controls/useThirdPersonCamera";
+import {
+  MAX_STEP_HEIGHT,
+  isBlockedByObstacle,
+  isClimbableStep,
+} from "./controls/stepUp";
 import { useModalStore } from "./stores/modalStore";
 import {
   getInteractables,
   useInteractionStore,
 } from "./stores/interactionStore";
 import { playFootstep } from "../utils/footsteps";
+import { useCharacterStore } from "./stores/characterStore";
 
 // The character walks the world's baked geometry: a downward ray finds the
 // surface under it each frame so it follows the uneven lawn and climbs onto the
@@ -47,7 +54,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 
-export default function Player({ colliders }) {
+export default function Player({ colliders, sendState }) {
   const group = useRef();
   const keys = useKeyboard();
   const orbitCamera = useThirdPersonCamera();
@@ -55,6 +62,14 @@ export default function Player({ colliders }) {
   const { isModalOpen } = useModalStore();
   const setPrompt = useInteractionStore((state) => state.setPrompt);
   const [action, setAction] = useState("idle");
+
+  // Local character appearance, broadcast to peers and used to tint the model
+  // and label the avatar.
+  const username = useCharacterStore((s) => s.username);
+  const headColor = useCharacterStore((s) => s.headColor);
+  const bodyColor = useCharacterStore((s) => s.bodyColor);
+  const legColor = useCharacterStore((s) => s.legColor);
+  const colors = { headColor, bodyColor, legColor };
 
   // Live state kept in refs so per-frame motion never triggers a re-render.
   const position = useRef(SPAWN.clone());
@@ -139,9 +154,68 @@ export default function Player({ colliders }) {
       move.current.normalize();
       const speed = held.run ? RUN_SPEED : WALK_SPEED;
       disp.current.copy(move.current).multiplyScalar(speed * step);
-      slideOffWalls(disp.current, list);
-      position.current.x += disp.current.x;
-      position.current.z += disp.current.z;
+
+      // --- Step Up / Stair Climbing Algorithm ---
+      const oldX = position.current.x;
+      const oldY = position.current.y;
+      const oldZ = position.current.z;
+
+      // 1. Try normal horizontal movement with sliding
+      let tempDisp = disp.current.clone();
+      slideOffWalls(tempDisp, list);
+
+      const originalLen = disp.current.length();
+      const slidLen = tempDisp.length();
+
+      // If sliding shortened the move enough to suspect an obstacle, try to step
+      // up and over it; otherwise just take the slid move below.
+      if (isBlockedByObstacle(originalLen, slidLen)) {
+        // Temporarily raise the character by a step height.
+        position.current.y += MAX_STEP_HEIGHT;
+
+        // Try the horizontal move again at the raised height
+        let stepUpDisp = disp.current.clone();
+        slideOffWalls(stepUpDisp, list);
+
+        // If stepping up allowed us to move further forward horizontally
+        if (stepUpDisp.length() > slidLen) {
+          position.current.x += stepUpDisp.x;
+          position.current.z += stepUpDisp.z;
+
+          // Find the ground height at this new position
+          let groundY = null;
+          if (list && list.length) {
+            rayOrigin.current.set(
+              position.current.x,
+              position.current.y + RAY_ABOVE,
+              position.current.z
+            );
+            raycaster.current.set(rayOrigin.current, DOWN);
+            raycaster.current.far = RAY_FAR + MAX_STEP_HEIGHT;
+            const hits = raycaster.current.intersectObjects(list, true);
+            if (hits.length) groundY = hits[0].point.y;
+          }
+
+          // If the found ground is a real, climbable step, walk onto it.
+          if (isClimbableStep(groundY, oldY)) {
+            position.current.y = groundY;
+          } else {
+            // Step up invalid, revert and apply normal horizontal slide
+            position.current.x = oldX + tempDisp.x;
+            position.current.y = oldY;
+            position.current.z = oldZ + tempDisp.z;
+          }
+        } else {
+          // Raising didn't help, revert and apply normal horizontal slide
+          position.current.x = oldX + tempDisp.x;
+          position.current.y = oldY;
+          position.current.z = oldZ + tempDisp.z;
+        }
+      } else {
+        // Apply normal horizontal slide directly
+        position.current.x += tempDisp.x;
+        position.current.z += tempDisp.z;
+      }
 
       // Turn the body toward the intended travel direction (not the slid one),
       // so it keeps facing where the player is steering while brushing a wall.
@@ -200,6 +274,17 @@ export default function Player({ colliders }) {
     const nextAction = !grounded.current ? "jump" : isMoving ? "walk" : "idle";
     if (nextAction !== action) setAction(nextAction);
 
+    // Broadcast local position to other visitors. The hook throttles this to
+    // 10 Hz and no-ops when running solo, so it is cheap to call every frame.
+    if (sendState) {
+      sendState({
+        pos: [position.current.x, position.current.y, position.current.z],
+        yaw: yaw.current,
+        action: nextAction,
+        character: { username, headColor, bodyColor, legColor },
+      });
+    }
+
     // Footsteps on a cadence while walking on the ground.
     if (isMoving && grounded.current && !isModalOpen) {
       stepTimer.current += step;
@@ -243,12 +328,34 @@ export default function Player({ colliders }) {
     // Place the orbit camera last, after this frame's position is settled, so
     // it tracks the character without a frame of lag; pass the colliders so it
     // can pull in when the house would come between the camera and the head.
-    orbitCamera.apply(camera, position.current, colliders);
+    orbitCamera.apply(
+      camera,
+      position.current,
+      yaw.current,
+      isMoving,
+      step,
+      colliders
+    );
   });
 
   return (
     <group ref={group}>
-      <PlayerModel action={action} />
+      <PlayerModel action={action} colors={colors} />
+      {username && (
+        <Billboard position={[0, 2.4, 0]}>
+          <Text
+            font="/fonts/Minecraft-Regular.ttf"
+            fontSize={0.18}
+            color="#ffe16b"
+            anchorX="center"
+            anchorY="bottom"
+            outlineWidth={0.012}
+            outlineColor="#1a1a1a"
+          >
+            {username}
+          </Text>
+        </Billboard>
+      )}
     </group>
   );
 }
