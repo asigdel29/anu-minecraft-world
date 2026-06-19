@@ -11,6 +11,8 @@ import ControlsHint from "./components/ControlsHint/ControlsHint";
 import InteractPrompt from "./components/InteractPrompt/InteractPrompt";
 import TouchControls from "./components/TouchControls/TouchControls";
 import CustomizeButton from "./components/CustomizeButton/CustomizeButton";
+import ShareButton from "./components/ShareButton/ShareButton";
+import ChatOverlay from "./components/Chat/ChatOverlay";
 import CharacterCustomizer from "./components/CharacterCustomizer/CharacterCustomizer";
 import { useCharacterStore } from "./Experience/stores/characterStore";
 import { useModalStore } from "./Experience/stores/modalStore";
@@ -44,12 +46,14 @@ function App() {
   return (
     <>
       <LoadingScreen />
+      <ShareButton />
       <CustomizeButton />
       <AudioToggleButton />
       <InfoButton />
       <ControlsHint />
       <InteractPrompt />
       <TouchControls />
+      <ChatOverlay />
       <Modal />
       <Suspense fallback={null}>
         <Experience />

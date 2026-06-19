@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { create } from "zustand";
 
 import {
+  appendLog,
+  chatEnvelope,
+  clampChat,
   parseMessage,
   roomUrl,
   shouldSend,
@@ -14,8 +17,9 @@ let _ws = null;
 // ─── Presence store ──────────────────────────────────────────────────────────
 // The map of remote players the renderer draws. Each entry is updated in place
 // as state frames arrive and dropped when the peer leaves.
-export const useMultiplayerStore = create((set) => ({
+export const useMultiplayerStore = create((set, get) => ({
   remotePlayers: {}, // { [id]: { pos, yaw, action, character, lastSeen } }
+  activityLog: [], // [{ type, id, text, ts }] — joins, leaves, and chat
 
   updateRemote: (id, data) =>
     set((s) => ({
@@ -31,6 +35,26 @@ export const useMultiplayerStore = create((set) => ({
       delete next[id];
       return { remotePlayers: next };
     }),
+
+  pushLog: (entry) =>
+    set((s) => ({
+      activityLog: appendLog(s.activityLog, { ...entry, ts: Date.now() }),
+    })),
+
+  // Send a chat message through the shared socket and echo it locally so the
+  // sender sees it immediately. The text is length-capped before it leaves.
+  sendChat: (username, text) => {
+    const clean = clampChat(text);
+    if (!clean) return;
+    if (_ws && _ws.readyState === WebSocket.OPEN) {
+      _ws.send(JSON.stringify(chatEnvelope(username, clean)));
+    }
+    get().pushLog({
+      type: "chat",
+      id: "local",
+      text: `${username || "you"}: ${clean}`,
+    });
+  },
 }));
 
 // ─── Hook: owns the WebSocket lifecycle ──────────────────────────────────────
@@ -39,7 +63,8 @@ export const useMultiplayerStore = create((set) => ({
 // VITE_MULTIPLAYER_HOST is unset or the socket cannot open, the world runs solo.
 export function useMultiplayer() {
   const lastSent = useRef(0);
-  const { updateRemote, removeRemote } = useMultiplayerStore.getState();
+  const { updateRemote, removeRemote, pushLog } =
+    useMultiplayerStore.getState();
 
   useEffect(() => {
     const url = roomUrl(import.meta.env.VITE_MULTIPLAYER_HOST);
@@ -60,8 +85,12 @@ export function useMultiplayer() {
       const data = parseMessage(event.data);
       if (!data) return;
       switch (data.type) {
+        case "join":
+          pushLog({ type: "join", id: data.id, text: "player joined the world" });
+          break;
         case "leave":
           removeRemote(data.id);
+          pushLog({ type: "leave", id: data.id, text: "player left the world" });
           break;
         case "state":
           updateRemote(data.id, {
@@ -71,8 +100,15 @@ export function useMultiplayer() {
             character: data.character,
           });
           break;
-        // "join" and "peers" need no work here: a peer becomes visible as soon
-        // as its first state frame arrives, and leaves on "leave".
+        case "chat": {
+          const name = data.username || data.id?.slice(0, 6) || "???";
+          const text = clampChat(data.text);
+          pushLog({ type: "chat", id: data.id, text: `${name}: ${text}` });
+          // Surface the message as a transient bubble over the peer's avatar.
+          updateRemote(data.id, { chatBubble: text, chatBubbleTs: Date.now() });
+          break;
+        }
+        // "peers" needs no work: a peer becomes visible on its first state frame.
         default:
           break;
       }

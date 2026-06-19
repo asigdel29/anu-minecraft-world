@@ -3,6 +3,11 @@ import { describe, it, expect } from "vitest";
 import {
   ROOM,
   SEND_INTERVAL,
+  MAX_CHAT_LENGTH,
+  ACTIVITY_LOG_CAP,
+  appendLog,
+  chatEnvelope,
+  clampChat,
   parseMessage,
   roomUrl,
   shouldSend,
@@ -55,5 +60,49 @@ describe("shouldSend", () => {
   it("defaults to the 10 Hz SEND_INTERVAL", () => {
     expect(shouldSend(SEND_INTERVAL, 0)).toBe(true);
     expect(shouldSend(SEND_INTERVAL - 1, 0)).toBe(false);
+  });
+});
+
+describe("clampChat", () => {
+  it("leaves a short message unchanged", () => {
+    expect(clampChat("hello")).toBe("hello");
+  });
+
+  it("caps an overlong message at MAX_CHAT_LENGTH", () => {
+    expect(clampChat("x".repeat(MAX_CHAT_LENGTH + 50))).toHaveLength(
+      MAX_CHAT_LENGTH
+    );
+  });
+
+  it("returns an empty string for non-strings", () => {
+    expect(clampChat(undefined)).toBe("");
+    expect(clampChat({ evil: true })).toBe("");
+  });
+});
+
+describe("chatEnvelope", () => {
+  it("builds a chat envelope with the text capped", () => {
+    expect(chatEnvelope("steve", "hi")).toEqual({
+      type: "chat",
+      username: "steve",
+      text: "hi",
+    });
+    expect(chatEnvelope("steve", "y".repeat(MAX_CHAT_LENGTH + 1)).text).toHaveLength(
+      MAX_CHAT_LENGTH
+    );
+  });
+});
+
+describe("appendLog", () => {
+  it("appends an entry", () => {
+    expect(appendLog([{ a: 1 }], { a: 2 })).toEqual([{ a: 1 }, { a: 2 }]);
+  });
+
+  it("retains only the most recent entries up to the cap", () => {
+    const start = Array.from({ length: ACTIVITY_LOG_CAP }, (_, i) => ({ i }));
+    const next = appendLog(start, { i: 999 });
+    expect(next).toHaveLength(ACTIVITY_LOG_CAP);
+    expect(next[next.length - 1]).toEqual({ i: 999 });
+    expect(next[0]).toEqual({ i: 1 }); // the oldest entry was dropped
   });
 });

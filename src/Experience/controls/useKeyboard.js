@@ -34,6 +34,11 @@ export function useKeyboard() {
 
   useEffect(() => {
     const setAction = (event, held) => {
+      // While the user types in a text field (chat, character name), let the
+      // input handle the keys instead of driving the character.
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
       const action = KEY_ACTIONS[event.code];
       if (!action) return;
       // The canvas fills the viewport, so Space and the arrows would otherwise

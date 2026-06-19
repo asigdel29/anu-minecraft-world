@@ -12,6 +12,7 @@ import { LERP_SPEED, dampFraction, stepAngle } from "./remoteInterp";
 // tinted independently from its broadcast appearance (default until a peer
 // sends colours).
 const MODEL_PATH = "/models/PlayerT.glb";
+const CHAT_DURATION = 5000; // ms a chat speech bubble stays visible
 
 // Classify a mesh node into a body zone by name (mirrors PlayerT's own tinting).
 const classifyZone = (object) => {
@@ -104,6 +105,8 @@ export default function RemotePlayer({ data }) {
   });
 
   const username = data.character?.username || "";
+  const showBubble =
+    data.chatBubble && Date.now() - (data.chatBubbleTs || 0) < CHAT_DURATION;
 
   return (
     <group ref={group}>
@@ -120,6 +123,23 @@ export default function RemotePlayer({ data }) {
             outlineColor="#1a1a1a"
           >
             {username}
+          </Text>
+        </Billboard>
+      )}
+      {showBubble && (
+        <Billboard position={[0, 2.8, 0]}>
+          <Text
+            font="/fonts/Minecraft-Regular.ttf"
+            fontSize={0.14}
+            color="#ffffff"
+            anchorX="center"
+            anchorY="bottom"
+            outlineWidth={0.01}
+            outlineColor="#333333"
+            maxWidth={2}
+            textAlign="center"
+          >
+            {data.chatBubble}
           </Text>
         </Billboard>
       )}

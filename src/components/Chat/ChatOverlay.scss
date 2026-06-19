@@ -1,0 +1,97 @@
+@use "../../index.scss" as styles;
+
+.chat-overlay {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 90;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 360px;
+  width: 100%;
+
+  @media screen and (max-width: 450px) {
+    bottom: 100px; // above mobile touch controls
+    left: 12px;
+    max-width: 280px;
+  }
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 140px;
+  overflow: hidden;
+}
+
+.chat-msg {
+  font-family: "Minecraft", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #e0e0e0;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 3px 8px;
+  border-radius: 2px;
+  word-break: break-word;
+  transition: opacity 0.3s ease;
+
+  &--join {
+    color: #5dff7a;
+  }
+
+  &--leave {
+    color: #ff6f6f;
+  }
+
+  &--chat {
+    color: #e0e0e0;
+  }
+}
+
+.chat-icon {
+  font-weight: bold;
+}
+
+.chat-input-row {
+  pointer-events: auto;
+}
+
+.chat-input {
+  font-family: "Minecraft", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  width: 100%;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #e0e0e0;
+  border: 2px solid styles.$color-base-dark-gray;
+  outline: none;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: #666;
+  }
+
+  &:focus {
+    border-color: styles.$color-base-green;
+  }
+}
+
+.chat-open-btn {
+  pointer-events: auto;
+  align-self: flex-start;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid styles.$color-base-dark-gray;
+  color: white;
+  font-size: 16px;
+  padding: 6px 10px;
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.75);
+    border-color: styles.$color-base-green;
+  }
+}

@@ -7,6 +7,10 @@
 export const ROOM = "world";
 export const SEND_INTERVAL = 100;
 
+// Longest chat message kept, and how many activity-log entries to retain.
+export const MAX_CHAT_LENGTH = 120;
+export const ACTIVITY_LOG_CAP = 50;
+
 /**
  * Build the relay room URL for a host. A bare `localhost[:port]` host uses the
  * insecure `ws` scheme (the local `wrangler dev` server is plain ws); every
@@ -39,3 +43,25 @@ export const parseMessage = (raw) => {
  */
 export const shouldSend = (now, lastSent, interval = SEND_INTERVAL) =>
   now - lastSent >= interval;
+
+/**
+ * Cap a chat string to MAX_CHAT_LENGTH. Peer text is untrusted, so an overlong
+ * (or non-string) payload must never reach the log or a speech bubble unbounded.
+ * Rendering still escapes it — this only bounds length.
+ */
+export const clampChat = (text, max = MAX_CHAT_LENGTH) =>
+  typeof text === "string" ? text.slice(0, max) : "";
+
+/** Build a chat envelope with the text already length-capped. */
+export const chatEnvelope = (username, text) => ({
+  type: "chat",
+  username,
+  text: clampChat(text),
+});
+
+/**
+ * Append an entry to the activity log, retaining only the most recent `cap`
+ * entries so the log can never grow without bound.
+ */
+export const appendLog = (log, entry, cap = ACTIVITY_LOG_CAP) =>
+  [...log, entry].slice(-cap);
