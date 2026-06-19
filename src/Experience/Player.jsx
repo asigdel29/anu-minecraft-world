@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
+import { Text, Billboard } from "@react-three/drei";
 
 import PlayerModel from "./models/PlayerT";
 import { useKeyboard } from "./controls/useKeyboard";
@@ -17,6 +18,7 @@ import {
   useInteractionStore,
 } from "./stores/interactionStore";
 import { playFootstep } from "../utils/footsteps";
+import { useCharacterStore } from "./stores/characterStore";
 
 // The character walks the world's baked geometry: a downward ray finds the
 // surface under it each frame so it follows the uneven lawn and climbs onto the
@@ -60,6 +62,14 @@ export default function Player({ colliders, sendState }) {
   const { isModalOpen } = useModalStore();
   const setPrompt = useInteractionStore((state) => state.setPrompt);
   const [action, setAction] = useState("idle");
+
+  // Local character appearance, broadcast to peers and used to tint the model
+  // and label the avatar.
+  const username = useCharacterStore((s) => s.username);
+  const headColor = useCharacterStore((s) => s.headColor);
+  const bodyColor = useCharacterStore((s) => s.bodyColor);
+  const legColor = useCharacterStore((s) => s.legColor);
+  const colors = { headColor, bodyColor, legColor };
 
   // Live state kept in refs so per-frame motion never triggers a re-render.
   const position = useRef(SPAWN.clone());
@@ -271,6 +281,7 @@ export default function Player({ colliders, sendState }) {
         pos: [position.current.x, position.current.y, position.current.z],
         yaw: yaw.current,
         action: nextAction,
+        character: { username, headColor, bodyColor, legColor },
       });
     }
 
@@ -329,7 +340,22 @@ export default function Player({ colliders, sendState }) {
 
   return (
     <group ref={group}>
-      <PlayerModel action={action} />
+      <PlayerModel action={action} colors={colors} />
+      {username && (
+        <Billboard position={[0, 2.4, 0]}>
+          <Text
+            font="/fonts/Minecraft-Regular.ttf"
+            fontSize={0.18}
+            color="#ffe16b"
+            anchorX="center"
+            anchorY="bottom"
+            outlineWidth={0.012}
+            outlineColor="#1a1a1a"
+          >
+            {username}
+          </Text>
+        </Billboard>
+      )}
     </group>
   );
 }
