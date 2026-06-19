@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 
 import * as THREE from "three";
 
+import { followYaw } from "./followYaw";
+
 // Orbit limits and sensitivities for the third-person rig. Pitch is kept just
 // above the ground and just below straight-down so the camera never flips or
 // buries itself in the lawn; distance clamps keep the character framed.
@@ -31,9 +33,10 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
  *   orbit around `target` (a THREE.Vector3) and looks at the head.
  */
 export function useThirdPersonCamera() {
-  const yaw = useRef(Math.PI); // start behind the character (facing the house)
+  const yaw = useRef(0); // start behind the character (facing the house)
   const pitch = useRef(0.35);
   const distance = useRef(9);
+  const isDragging = useRef(false);
 
   // Scratch objects reused each frame so `apply` allocates nothing.
   const aim = useRef(new THREE.Vector3());
@@ -49,6 +52,7 @@ export function useThirdPersonCamera() {
     const onDown = (event) => {
       if (event.button !== undefined && event.button !== 0) return;
       dragging = true;
+      isDragging.current = true;
       lastX = event.clientX;
       lastY = event.clientY;
     };
@@ -65,6 +69,7 @@ export function useThirdPersonCamera() {
     };
     const onUp = () => {
       dragging = false;
+      isDragging.current = false;
     };
     const onWheel = (event) => {
       distance.current = clamp(
@@ -89,8 +94,17 @@ export function useThirdPersonCamera() {
   // Place the camera on its orbit around `target`, looking at the head. If
   // `colliders` are given and the house wall would sit between the head and the
   // camera, pull the camera in to the wall so the view never clips inside.
-  const apply = (camera, target, colliders) => {
+  const apply = (camera, target, playerYaw, isMoving, step, colliders) => {
     aim.current.set(target.x, target.y + LOOK_HEIGHT, target.z);
+
+    // Auto-follow: ease the yaw to sit behind the player while moving (and not
+    // while the user is dragging the orbit). See followYaw for the easing.
+    yaw.current = followYaw(yaw.current, playerYaw, {
+      isMoving,
+      isDragging: isDragging.current,
+      step,
+    });
+
     const cosPitch = Math.cos(pitch.current);
     desired.current.set(
       target.x + distance.current * Math.sin(yaw.current) * cosPitch,
