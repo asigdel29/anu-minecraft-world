@@ -1,0 +1,51 @@
+name: Deploy multiplayer relay
+
+# Deploy the PartyKit relay room to Cloudflare. A push to develop or main first
+# re-runs the CI gate (lint + build + unit tests); only when that passes does the
+# relay deploy, so a broken build never ships the backend.
+#
+# Auth uses deploy-to-your-own-Cloudflare: the CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID repo secrets let `partykit deploy` publish the room as a
+# Worker + Durable Object in the project's own Cloudflare account. The static
+# front end deploys separately on Vercel and is untouched here.
+
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# Never cancel an in-flight deploy; serialize per branch.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: CI gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+
+  deploy:
+    name: Deploy relay
+    needs: checks
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx partykit deploy

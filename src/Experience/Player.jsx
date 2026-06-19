@@ -52,7 +52,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 
-export default function Player({ colliders }) {
+export default function Player({ colliders, sendState }) {
   const group = useRef();
   const keys = useKeyboard();
   const orbitCamera = useThirdPersonCamera();
@@ -263,6 +263,16 @@ export default function Player({ colliders }) {
 
     const nextAction = !grounded.current ? "jump" : isMoving ? "walk" : "idle";
     if (nextAction !== action) setAction(nextAction);
+
+    // Broadcast local position to other visitors. The hook throttles this to
+    // 10 Hz and no-ops when running solo, so it is cheap to call every frame.
+    if (sendState) {
+      sendState({
+        pos: [position.current.x, position.current.y, position.current.z],
+        yaw: yaw.current,
+        action: nextAction,
+      });
+    }
 
     // Footsteps on a cadence while walking on the ground.
     if (isMoving && grounded.current && !isModalOpen) {
