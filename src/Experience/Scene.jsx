@@ -13,6 +13,7 @@ import Player from "./Player";
 import GateSign from "./GateSign";
 import Terminal3D from "./Terminal3D";
 import AmbientLife from "./AmbientLife";
+import RemotePlayers from "./RemotePlayers";
 import { useMultiplayer } from "./stores/useMultiplayer";
 
 // The world is static, baked geometry. It used to be toured by a scripted
@@ -98,6 +99,10 @@ const Scene = () => {
           against the registered colliders to follow the ground. */}
       <Suspense fallback={null}>
         <Player colliders={colliders} sendState={sendState} />
+      </Suspense>
+      {/* Other visitors currently connected to the same world. */}
+      <Suspense fallback={null}>
+        <RemotePlayers />
       </Suspense>
     </>
   );
