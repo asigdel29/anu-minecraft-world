@@ -53,6 +53,19 @@ export const FLOOR_RANGES = {
   top: [0.52, 0.62],
 };
 
+// Floor order, indexed by the tour's `currentFloor`. The labels are used by the
+// tour HUD; the keys map to FLOORS / FLOOR_RANGES / PANELS.
+export const FLOOR_KEYS = ["ground", "middle", "top"];
+export const FLOOR_LABELS = ["Ground Floor", "Middle Floor", "Top Floor"];
+
+// The progress value at which the camera frames each floor — the tour eases to
+// the current floor's value and holds there until the visitor steps Next/Prev.
+export const FLOOR_VIEW_PROGRESS = [0.31, 0.44, 0.56];
+
+// How quickly the held progress eases toward the target floor (fraction of the
+// remaining gap per second), capped at a full correction per frame.
+export const TOUR_EASE_SPEED = 1.8;
+
 /**
  * Advance the tour progress by one frame, clamped to the [0, 1] range. `current`
  * is this frame's progress, `step` the frame delta in seconds, and `duration`
@@ -60,6 +73,16 @@ export const FLOOR_RANGES = {
  */
 export const advanceProgress = (current, step, duration = TOUR_DURATION) =>
   Math.min(1, current + step / duration);
+
+/**
+ * Ease the tour progress one frame toward a target, moving a fraction of the
+ * remaining distance so the camera glides to a floor and settles. `current` is
+ * this frame's progress, `target` the floor's view progress, `step` the frame
+ * delta in seconds, and `speed` the easing rate. The correction is capped at a
+ * full move per frame so a long frame never overshoots.
+ */
+export const easeTowards = (current, target, step, speed = TOUR_EASE_SPEED) =>
+  current + (target - current) * Math.min(1, speed * step);
 
 /**
  * Whether a progress value falls within an inclusive `[min, max]` window.

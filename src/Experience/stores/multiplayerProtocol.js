@@ -11,16 +11,40 @@ export const SEND_INTERVAL = 100;
 export const MAX_CHAT_LENGTH = 120;
 export const ACTIVITY_LOG_CAP = 50;
 
+// Longest a stored player id may be. The id is a client-provided UUID used as a
+// stable identity for persistence, so it is sanitized to a safe, bounded slug
+// before it ever reaches the relay or storage.
+export const MAX_PLAYER_ID_LENGTH = 36;
+
+// How long a remote player is kept after its last update before being pruned, so
+// avatars seeded from a server snapshot do not linger forever as ghosts.
+export const REMOTE_TTL_MS = 60_000;
+
+/**
+ * Reduce an untrusted player id to a safe, bounded slug (lowercase letters,
+ * digits, and dashes). Returns "" when nothing usable remains.
+ */
+export const sanitizePlayerId = (raw, max = MAX_PLAYER_ID_LENGTH) =>
+  typeof raw === "string"
+    ? raw
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "")
+        .slice(0, max)
+    : "";
+
 /**
  * Build the relay room URL for a host. A bare `localhost[:port]` host uses the
  * insecure `ws` scheme (the local `wrangler dev` server is plain ws); every
- * deployed host uses `wss`. Returns null for an empty host so the caller can
- * run solo.
+ * deployed host uses `wss`. A sanitized `playerId`, when given, is sent as a
+ * `pid` query param so the relay can key persistence on a stable identity.
+ * Returns null for an empty host so the caller can run solo.
  */
-export const roomUrl = (host) => {
+export const roomUrl = (host, playerId) => {
   if (!host) return null;
   const protocol = host.startsWith("localhost") ? "ws" : "wss";
-  return `${protocol}://${host}/party/${ROOM}`;
+  const pid = sanitizePlayerId(playerId);
+  const query = pid ? `?pid=${pid}` : "";
+  return `${protocol}://${host}/party/${ROOM}${query}`;
 };
 
 /**

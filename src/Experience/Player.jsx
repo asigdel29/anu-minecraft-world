@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -8,7 +8,17 @@ import PlayerModel from "./models/PlayerT";
 import { useKeyboard } from "./controls/useKeyboard";
 import { useThirdPersonCamera } from "./controls/useThirdPersonCamera";
 import { useTourCamera } from "./controls/useTourCamera";
-import { advanceProgress } from "./controls/tour";
+import {
+  FLOOR_KEYS,
+  FLOOR_VIEW_PROGRESS,
+  easeTowards,
+} from "./controls/tour";
+import { PANELS } from "../data/floors";
+import {
+  SAVE_INTERVAL_SEC,
+  loadPlayerState,
+  savePlayerState,
+} from "./controls/playerPersistence";
 import {
   MAX_STEP_HEIGHT,
   isBlockedByObstacle,
@@ -66,6 +76,7 @@ export default function Player({ colliders, sendState }) {
   const camera = useThree((state) => state.camera);
   const { isModalOpen } = useModalStore();
   const isTourActive = useTourStore((state) => state.isTourActive);
+  const currentFloor = useTourStore((state) => state.currentFloor);
   const endTour = useTourStore((state) => state.endTour);
   const setPrompt = useInteractionStore((state) => state.setPrompt);
   const [action, setAction] = useState("idle");
@@ -89,14 +100,20 @@ export default function Player({ colliders, sendState }) {
   const legColor = useCharacterStore((s) => s.legColor);
   const colors = { headColor, bodyColor, legColor };
 
+  // Resume where the visitor left off, if a valid transform was saved.
+  const saved = useMemo(() => loadPlayerState(), []);
+
   // Live state kept in refs so per-frame motion never triggers a re-render.
-  const position = useRef(SPAWN.clone());
-  const yaw = useRef(Math.PI); // start facing the house (down -Z)
+  const position = useRef(
+    saved ? new THREE.Vector3(...saved.pos) : SPAWN.clone()
+  );
+  const yaw = useRef(saved ? saved.yaw : Math.PI); // PI faces the house (-Z)
   const velocityY = useRef(0);
   const grounded = useRef(true);
   const nearest = useRef(null);
   const interactWasHeld = useRef(false);
   const stepTimer = useRef(0);
+  const saveTimer = useRef(0);
 
   // Scratch objects reused every frame to avoid per-frame allocation.
   const forward = useRef(new THREE.Vector3());
@@ -106,6 +123,19 @@ export default function Player({ colliders, sendState }) {
   const wallNormal = useRef(new THREE.Vector3());
   const rayOrigin = useRef(new THREE.Vector3());
   const raycaster = useRef(new THREE.Raycaster());
+
+  // Capture the final position when the tab is hidden or closed, so a reload
+  // resumes exactly where the visitor left off even between throttled saves.
+  useEffect(() => {
+    const persist = () => savePlayerState(position.current, yaw.current);
+    window.addEventListener("pagehide", persist);
+    document.addEventListener("visibilitychange", persist);
+    return () => {
+      persist();
+      window.removeEventListener("pagehide", persist);
+      document.removeEventListener("visibilitychange", persist);
+    };
+  }, []);
 
   // Cast along the intended horizontal step; if a wall is within the body
   // radius, remove the component of the step that drives into it so the
@@ -151,13 +181,33 @@ export default function Player({ colliders, sendState }) {
     const held = keys.current;
 
     // --- guided tour ---------------------------------------------------------
-    // While the tour plays it owns the camera: advance the timeline, pose the
-    // camera along the scripted path, and suspend all character control. The
-    // tour ends itself when it reaches the end (or on Escape, handled above).
+    // While the tour plays it owns the camera and suspends character control.
+    // The camera eases to the floor currently selected in the HUD and holds
+    // there; Next/Previous change `currentFloor`, Conclude (or Escape) ends it.
+    // Pressing E opens the poster nearest the camera on the framed floor.
     if (isTourActive) {
-      tourProgress.value = advanceProgress(tourProgress.value, step);
+      const target = FLOOR_VIEW_PROGRESS[currentFloor];
+      tourProgress.value = easeTowards(tourProgress.value, target, step);
       tourCamera.apply(camera, tourProgress.value);
-      if (tourProgress.value >= 1) endTour();
+
+      if (held.interact && !interactWasHeld.current) {
+        const floorKey = FLOOR_KEYS[currentFloor];
+        const floorIds = new Set(
+          PANELS.filter((panel) => panel.floor === floorKey).map((p) => p.id)
+        );
+        let best = null;
+        let bestDx = Infinity;
+        for (const targetable of getInteractables()) {
+          if (!floorIds.has(targetable.id)) continue;
+          const dx = Math.abs(targetable.position.x - camera.position.x);
+          if (dx < bestDx) {
+            bestDx = dx;
+            best = targetable;
+          }
+        }
+        if (best) best.open();
+      }
+      interactWasHeld.current = held.interact;
       return;
     }
 
@@ -311,6 +361,14 @@ export default function Player({ colliders, sendState }) {
 
     group.current.position.copy(position.current);
     group.current.rotation.y = yaw.current;
+
+    // Persist the transform on a slow cadence so the visitor resumes here on a
+    // future visit. A final save on exit (below) captures the last position.
+    saveTimer.current += step;
+    if (saveTimer.current >= SAVE_INTERVAL_SEC) {
+      saveTimer.current = 0;
+      savePlayerState(position.current, yaw.current);
+    }
 
     const nextAction = !grounded.current ? "jump" : isMoving ? "walk" : "idle";
     if (nextAction !== action) setAction(nextAction);
