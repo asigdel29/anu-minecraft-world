@@ -12,7 +12,9 @@ const Experience = () => {
     <Canvas
       flat={true}
       dpr={[1, 2]}
-      gl={{ powerPreference: "high-performance" }}
+      // preserveDrawingBuffer lets PostHog session replay snapshot the WebGL
+      // canvas; without it the captured frames read back blank.
+      gl={{ powerPreference: "high-performance", preserveDrawingBuffer: true }}
       eventSource={document.getElementById("root")}
     >
       <PerspectiveCamera makeDefault fov={70} position={[0, 69, 30]} />
