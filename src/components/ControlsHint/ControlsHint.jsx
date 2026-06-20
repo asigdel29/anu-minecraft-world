@@ -4,16 +4,12 @@ import "./ControlsHint.scss";
 
 import { useModalStore } from "../../Experience/stores/modalStore";
 import { useNavStore } from "../../Experience/stores/navStore";
+import { isCoarsePointer } from "../../Experience/controls/orientation";
 
 // Show the legend briefly on entering, then again whenever the visitor has been
 // idle this long — so a stuck visitor is reminded how to move.
 const SHOW_MS = 7000;
 const IDLE_MS = 8000;
-
-const isCoarsePointer = () =>
-  typeof window !== "undefined" &&
-  window.matchMedia &&
-  window.matchMedia("(pointer: coarse)").matches;
 
 /**
  * Controls legend for driving the character.
@@ -67,7 +63,7 @@ const ControlsHint = () => {
       aria-hidden="true"
     >
       {coarse ? (
-        <span>Joystick to move · drag to look · tap to interact</span>
+        <span>Joystick to move · drag to look · run · jump · use</span>
       ) : (
         <>
           <span className="controls-hint-key">WASD</span>

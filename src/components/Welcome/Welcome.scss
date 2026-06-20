@@ -1,0 +1,65 @@
+@use "../../styles/variables" as *;
+
+// First-visit welcome popup body. Sits inside the shared Modal frame, so this
+// only styles the content: a greeting, a short blurb, and the two actions.
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 4px;
+  text-align: center;
+  font-family: "Minecraft", ui-monospace, Menlo, Consolas, monospace;
+  color: $color-base-gray;
+
+  &-title {
+    margin: 0;
+    font-size: 1.5rem;
+    color: $color-font-primary-yellow;
+  }
+
+  &-body {
+    margin: 0;
+    max-width: 36ch;
+    line-height: 1.5;
+  }
+
+  &-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  &-btn {
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 10px 20px;
+    color: $color-base-gray;
+    background: $color-base-dark-gray-three;
+    border: 2px solid $color-base-dark-gray;
+    box-shadow: inset -3px -3px 0 0 #00000055, inset 3px 3px 0 0 #ffffff22;
+    cursor: pointer;
+    transition: background 0.12s ease;
+
+    &:hover {
+      background: $color-base-dark-gray-two;
+    }
+
+    &--primary {
+      color: #11201f;
+      background: $color-base-green;
+      border-color: #0f7d74;
+
+      &:hover {
+        background: #20c4b5;
+      }
+    }
+  }
+
+  &-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: $color-base-dark-gray;
+  }
+}
