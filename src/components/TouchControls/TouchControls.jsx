@@ -12,14 +12,15 @@ const RADIUS = 46;
 const DEAD = 0.28;
 
 /**
- * On-screen controls for touch devices: a left-hand virtual joystick that
- * drives the same movement input the keyboard does, plus jump and interact
- * buttons. Looking around already works on touch via the camera rig's pointer
- * listeners, so the rest of the screen drags the camera; these controls call
- * `stopPropagation` so touching them never also orbits the camera. Rendered
- * only on a coarse pointer, and never on a mouse. The layout is tuned for
- * landscape (see TouchControls.scss); the OrientationHint nudges the visitor to
- * rotate when in portrait.
+ * On-screen controls for touch devices, laid out like a mobile shooter: a
+ * left-hand virtual joystick that drives the same movement input the keyboard
+ * does, and a right-hand action cluster of run, jump, and interact buttons.
+ * Looking around already works on touch via the camera rig's pointer listeners,
+ * so the rest of the screen drags the camera; these controls call
+ * `stopPropagation` so touching them never also orbits the camera. Rendered only
+ * on a coarse pointer, and never on a mouse. The layout is tuned for landscape
+ * and respects device safe areas (see TouchControls.scss); the OrientationHint
+ * nudges the visitor to rotate when in portrait.
  */
 const TouchControls = () => {
   const [coarse] = useState(isCoarsePointer);
@@ -79,6 +80,12 @@ const TouchControls = () => {
     input.jump = held;
   };
 
+  // Run mirrors the Shift key: held while the button is pressed for a sprint.
+  const setRun = (held) => (event) => {
+    event.stopPropagation();
+    input.run = held;
+  };
+
   // The interact button mirrors the E key: Player edge-detects input.interact,
   // so a press-then-release opens the nearest target exactly once.
   const setInteract = (held) => (event) => {
@@ -117,6 +124,16 @@ const TouchControls = () => {
         onPointerLeave={setJump(false)}
       >
         Jump
+      </button>
+      <button
+        type="button"
+        className="touch-run"
+        onPointerDown={setRun(true)}
+        onPointerUp={setRun(false)}
+        onPointerCancel={setRun(false)}
+        onPointerLeave={setRun(false)}
+      >
+        Run
       </button>
     </div>
   );
