@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   FLOOR_RANGES,
   advanceProgress,
+  easeTowards,
   isWithinRange,
   posterBrightness,
 } from "./tour";
@@ -14,6 +15,22 @@ describe("advanceProgress", () => {
 
   it("clamps at 1 and never overshoots", () => {
     expect(advanceProgress(0.99, 10, 16)).toBe(1);
+  });
+});
+
+describe("easeTowards", () => {
+  it("moves a fraction of the way toward the target", () => {
+    // speed 2, step 0.1 -> covers 20% of the remaining gap.
+    expect(easeTowards(0, 1, 0.1, 2)).toBeCloseTo(0.2, 5);
+  });
+
+  it("closes the gap and never overshoots on a long frame", () => {
+    expect(easeTowards(0, 0.56, 10, 1.8)).toBeCloseTo(0.56, 5);
+  });
+
+  it("can ease downward toward a lower target", () => {
+    expect(easeTowards(0.56, 0.31, 0.1, 2)).toBeLessThan(0.56);
+    expect(easeTowards(0.56, 0.31, 0.1, 2)).toBeGreaterThan(0.31);
   });
 });
 

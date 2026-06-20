@@ -8,7 +8,12 @@ import PlayerModel from "./models/PlayerT";
 import { useKeyboard } from "./controls/useKeyboard";
 import { useThirdPersonCamera } from "./controls/useThirdPersonCamera";
 import { useTourCamera } from "./controls/useTourCamera";
-import { advanceProgress } from "./controls/tour";
+import {
+  FLOOR_KEYS,
+  FLOOR_VIEW_PROGRESS,
+  easeTowards,
+} from "./controls/tour";
+import { PANELS } from "../data/floors";
 import {
   MAX_STEP_HEIGHT,
   isBlockedByObstacle,
@@ -66,6 +71,7 @@ export default function Player({ colliders, sendState }) {
   const camera = useThree((state) => state.camera);
   const { isModalOpen } = useModalStore();
   const isTourActive = useTourStore((state) => state.isTourActive);
+  const currentFloor = useTourStore((state) => state.currentFloor);
   const endTour = useTourStore((state) => state.endTour);
   const setPrompt = useInteractionStore((state) => state.setPrompt);
   const [action, setAction] = useState("idle");
@@ -151,13 +157,33 @@ export default function Player({ colliders, sendState }) {
     const held = keys.current;
 
     // --- guided tour ---------------------------------------------------------
-    // While the tour plays it owns the camera: advance the timeline, pose the
-    // camera along the scripted path, and suspend all character control. The
-    // tour ends itself when it reaches the end (or on Escape, handled above).
+    // While the tour plays it owns the camera and suspends character control.
+    // The camera eases to the floor currently selected in the HUD and holds
+    // there; Next/Previous change `currentFloor`, Conclude (or Escape) ends it.
+    // Pressing E opens the poster nearest the camera on the framed floor.
     if (isTourActive) {
-      tourProgress.value = advanceProgress(tourProgress.value, step);
+      const target = FLOOR_VIEW_PROGRESS[currentFloor];
+      tourProgress.value = easeTowards(tourProgress.value, target, step);
       tourCamera.apply(camera, tourProgress.value);
-      if (tourProgress.value >= 1) endTour();
+
+      if (held.interact && !interactWasHeld.current) {
+        const floorKey = FLOOR_KEYS[currentFloor];
+        const floorIds = new Set(
+          PANELS.filter((panel) => panel.floor === floorKey).map((p) => p.id)
+        );
+        let best = null;
+        let bestDx = Infinity;
+        for (const targetable of getInteractables()) {
+          if (!floorIds.has(targetable.id)) continue;
+          const dx = Math.abs(targetable.position.x - camera.position.x);
+          if (dx < bestDx) {
+            bestDx = dx;
+            best = targetable;
+          }
+        }
+        if (best) best.open();
+      }
+      interactWasHeld.current = held.interact;
       return;
     }
 
