@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { create } from "zustand";
 
 import {
+  REMOTE_TTL_MS,
   appendLog,
   chatEnvelope,
   clampChat,
@@ -13,6 +14,26 @@ import {
 // Module-level WebSocket so both the in-canvas hook and (later) DOM overlays can
 // send through the one socket without prop-drilling it across the React tree.
 let _ws = null;
+
+// A stable per-browser id, persisted so the relay can remember this player's
+// position across reloads. Created lazily on first connect.
+const PLAYER_ID_KEY = "mc-player-id";
+
+const loadOrCreatePlayerId = () => {
+  try {
+    let id = localStorage.getItem(PLAYER_ID_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `p-${Math.random().toString(36).slice(2, 10)}`;
+      localStorage.setItem(PLAYER_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+};
 
 // ─── Presence store ──────────────────────────────────────────────────────────
 // The map of remote players the renderer draws. Each entry is updated in place
@@ -67,7 +88,10 @@ export function useMultiplayer() {
     useMultiplayerStore.getState();
 
   useEffect(() => {
-    const url = roomUrl(import.meta.env.VITE_MULTIPLAYER_HOST);
+    const url = roomUrl(
+      import.meta.env.VITE_MULTIPLAYER_HOST,
+      loadOrCreatePlayerId()
+    );
     if (!url) {
       console.warn("[multiplayer] VITE_MULTIPLAYER_HOST unset; running solo.");
       return undefined;
@@ -100,6 +124,19 @@ export function useMultiplayer() {
             character: data.character,
           });
           break;
+        case "snapshot":
+          // The relay's record of recently-seen players, so the world looks
+          // populated on arrival instead of only as others move.
+          for (const player of data.players || []) {
+            if (!player || !player.id) continue;
+            updateRemote(player.id, {
+              pos: player.pos,
+              yaw: player.yaw,
+              action: player.action,
+              character: player.character,
+            });
+          }
+          break;
         case "chat": {
           const name = data.username || data.id?.slice(0, 6) || "???";
           const text = clampChat(data.text);
@@ -115,7 +152,19 @@ export function useMultiplayer() {
     };
 
     _ws = ws;
+
+    // Drop remote players that have gone quiet (e.g. ghosts seeded from a
+    // snapshot whose owner never reconnected), so stale avatars do not linger.
+    const prune = setInterval(() => {
+      const now = Date.now();
+      const store = useMultiplayerStore.getState();
+      for (const [id, player] of Object.entries(store.remotePlayers)) {
+        if (now - (player.lastSeen || 0) > REMOTE_TTL_MS) store.removeRemote(id);
+      }
+    }, REMOTE_TTL_MS / 2);
+
     return () => {
+      clearInterval(prune);
       ws.close();
       _ws = null;
     };

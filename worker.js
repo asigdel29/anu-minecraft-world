@@ -1,12 +1,27 @@
 /* global WebSocketPair */
 // Cloudflare Worker + Durable Object relay for the multiplayer "world" room.
 //
-// Replaces the earlier PartyKit handler: PartyKit cannot deploy to a free
-// Cloudflare plan (it requests classic, paid-only Durable Objects), whereas this
-// uses a SQLite-backed DO (see the new_sqlite_classes migration in
-// wrangler.toml) which is free-tier eligible. It is relay-only: it announces
-// join/leave and forwards each client's message to the others, tagged with a
-// per-connection id. It persists nothing and inspects no payload field.
+// Uses a SQLite-backed DO (see the new_sqlite_classes migration in
+// wrangler.toml), which is free-tier eligible. It relays presence (join/leave)
+// and forwards each client's frame to the others, tagged with that client's id.
+//
+// It also remembers recent players: each client supplies a stable id (?pid=),
+// the DO persists that player's latest transform, and a newcomer receives a
+// snapshot of everyone seen within STATE_TTL_MS — so the world looks populated
+// the instant you arrive, not only once others move. Storage survives
+// hibernation, so the room is persistent across idle periods.
+
+// How long a stored player is kept (and shown to joiners) after its last frame.
+const STATE_TTL_MS = 5 * 60 * 1000;
+// Don't write to storage more often than this per player (state arrives ~10 Hz).
+const PERSIST_INTERVAL_MS = 1000;
+// Longest id we accept as a storage key / hibernation tag.
+const MAX_ID_LENGTH = 36;
+
+const sanitizeId = (raw) =>
+  typeof raw === "string"
+    ? raw.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, MAX_ID_LENGTH)
+    : "";
 
 export default {
   // Route every socket for the single shared room to one Durable Object
@@ -27,6 +42,9 @@ export default {
 export class Room {
   constructor(state) {
     this.state = state;
+    // Per-id wall-clock of the last persisted frame, to throttle storage writes.
+    // Best-effort: a hibernation wake resets it, costing at most one extra write.
+    this.lastPersist = new Map();
   }
 
   // The connection id is the WebSocket's hibernation tag, so it survives the DO
@@ -47,26 +65,44 @@ export class Room {
     }
   }
 
-  async fetch() {
+  // Read stored players that are still fresh, deleting any that have expired.
+  async freshPlayers(now) {
+    const stored = await this.state.storage.list();
+    const players = [];
+    const expired = [];
+    for (const [id, record] of stored) {
+      if (record && now - record.ts <= STATE_TTL_MS) {
+        players.push({ id, ...record });
+      } else {
+        expired.push(id);
+      }
+    }
+    if (expired.length) await this.state.storage.delete(expired);
+    return players;
+  }
+
+  async fetch(request) {
     const { 0: client, 1: server } = new WebSocketPair();
-    const id = crypto.randomUUID().slice(0, 8);
+    // Prefer the client-supplied stable id so persistence keys survive reloads;
+    // fall back to a random id for anonymous connections.
+    const url = new URL(request.url);
+    const id = sanitizeId(url.searchParams.get("pid")) || crypto.randomUUID().slice(0, 8);
 
     // Accept with hibernation so an idle room costs nothing.
     this.state.acceptWebSocket(server, [id]);
 
-    // Tell existing peers someone joined, and hand the newcomer the peer list.
-    const ids = this.state
-      .getWebSockets()
-      .map((ws) => this.idOf(ws))
-      .filter((other) => other && other !== id);
-    this.broadcast(JSON.stringify({ type: "join", id, ts: Date.now() }), server);
-    server.send(JSON.stringify({ type: "peers", ids }));
+    const now = Date.now();
+    // Announce the join to existing peers and hand the newcomer a snapshot of
+    // everyone remembered (minus itself) so they render immediately.
+    this.broadcast(JSON.stringify({ type: "join", id, ts: now }), server);
+    const players = (await this.freshPlayers(now)).filter((p) => p.id !== id);
+    server.send(JSON.stringify({ type: "snapshot", players }));
 
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  // Forward each frame to the other peers, stamped with the sender's id. The
-  // payload is treated as opaque; the client validates and escapes it.
+  // Forward each frame to the other peers, stamped with the sender's id, and
+  // persist state frames (throttled) so joiners can be shown recent players.
   webSocketMessage(ws, message) {
     let data;
     try {
@@ -74,7 +110,22 @@ export class Room {
     } catch {
       return;
     }
-    this.broadcast(JSON.stringify({ ...data, id: this.idOf(ws) }), ws);
+    const id = this.idOf(ws);
+    this.broadcast(JSON.stringify({ ...data, id }), ws);
+
+    if (data.type === "state") {
+      const now = Date.now();
+      if (now - (this.lastPersist.get(id) || 0) >= PERSIST_INTERVAL_MS) {
+        this.lastPersist.set(id, now);
+        this.state.storage.put(id, {
+          pos: data.pos,
+          yaw: data.yaw,
+          action: data.action,
+          character: data.character,
+          ts: now,
+        });
+      }
+    }
   }
 
   webSocketClose(ws) {
