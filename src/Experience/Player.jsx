@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -14,6 +14,11 @@ import {
   easeTowards,
 } from "./controls/tour";
 import { PANELS } from "../data/floors";
+import {
+  SAVE_INTERVAL_SEC,
+  loadPlayerState,
+  savePlayerState,
+} from "./controls/playerPersistence";
 import {
   MAX_STEP_HEIGHT,
   isBlockedByObstacle,
@@ -95,14 +100,20 @@ export default function Player({ colliders, sendState }) {
   const legColor = useCharacterStore((s) => s.legColor);
   const colors = { headColor, bodyColor, legColor };
 
+  // Resume where the visitor left off, if a valid transform was saved.
+  const saved = useMemo(() => loadPlayerState(), []);
+
   // Live state kept in refs so per-frame motion never triggers a re-render.
-  const position = useRef(SPAWN.clone());
-  const yaw = useRef(Math.PI); // start facing the house (down -Z)
+  const position = useRef(
+    saved ? new THREE.Vector3(...saved.pos) : SPAWN.clone()
+  );
+  const yaw = useRef(saved ? saved.yaw : Math.PI); // PI faces the house (-Z)
   const velocityY = useRef(0);
   const grounded = useRef(true);
   const nearest = useRef(null);
   const interactWasHeld = useRef(false);
   const stepTimer = useRef(0);
+  const saveTimer = useRef(0);
 
   // Scratch objects reused every frame to avoid per-frame allocation.
   const forward = useRef(new THREE.Vector3());
@@ -112,6 +123,19 @@ export default function Player({ colliders, sendState }) {
   const wallNormal = useRef(new THREE.Vector3());
   const rayOrigin = useRef(new THREE.Vector3());
   const raycaster = useRef(new THREE.Raycaster());
+
+  // Capture the final position when the tab is hidden or closed, so a reload
+  // resumes exactly where the visitor left off even between throttled saves.
+  useEffect(() => {
+    const persist = () => savePlayerState(position.current, yaw.current);
+    window.addEventListener("pagehide", persist);
+    document.addEventListener("visibilitychange", persist);
+    return () => {
+      persist();
+      window.removeEventListener("pagehide", persist);
+      document.removeEventListener("visibilitychange", persist);
+    };
+  }, []);
 
   // Cast along the intended horizontal step; if a wall is within the body
   // radius, remove the component of the step that drives into it so the
@@ -337,6 +361,14 @@ export default function Player({ colliders, sendState }) {
 
     group.current.position.copy(position.current);
     group.current.rotation.y = yaw.current;
+
+    // Persist the transform on a slow cadence so the visitor resumes here on a
+    // future visit. A final save on exit (below) captures the last position.
+    saveTimer.current += step;
+    if (saveTimer.current >= SAVE_INTERVAL_SEC) {
+      saveTimer.current = 0;
+      savePlayerState(position.current, yaw.current);
+    }
 
     const nextAction = !grounded.current ? "jump" : isMoving ? "walk" : "idle";
     if (nextAction !== action) setAction(nextAction);
