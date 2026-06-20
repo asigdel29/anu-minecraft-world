@@ -10,6 +10,7 @@ import {
   clampChat,
   parseMessage,
   roomUrl,
+  sanitizePlayerId,
   shouldSend,
 } from "./multiplayerProtocol";
 
@@ -24,9 +25,34 @@ describe("roomUrl", () => {
     );
   });
 
+  it("appends a sanitized pid query when a player id is given", () => {
+    expect(roomUrl("localhost:1999", "abc-123")).toBe(
+      `ws://localhost:1999/party/${ROOM}?pid=abc-123`
+    );
+  });
+
   it("returns null for an empty host so the caller runs solo", () => {
     expect(roomUrl("")).toBeNull();
     expect(roomUrl(undefined)).toBeNull();
+  });
+});
+
+describe("sanitizePlayerId", () => {
+  it("keeps a clean uuid-like slug", () => {
+    expect(sanitizePlayerId("a1b2-c3d4")).toBe("a1b2-c3d4");
+  });
+
+  it("lowercases and strips disallowed characters", () => {
+    expect(sanitizePlayerId("AB_12/x?y")).toBe("ab12xy");
+  });
+
+  it("bounds the length", () => {
+    expect(sanitizePlayerId("a".repeat(100)).length).toBe(36);
+  });
+
+  it("returns an empty string for non-strings", () => {
+    expect(sanitizePlayerId(undefined)).toBe("");
+    expect(sanitizePlayerId(42)).toBe("");
   });
 });
 
