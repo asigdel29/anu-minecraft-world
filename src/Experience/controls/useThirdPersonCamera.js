@@ -12,6 +12,10 @@ const PITCH_MAX = 1.3;
 const DISTANCE_MIN = 4;
 const DISTANCE_MAX = 16;
 const ORBIT_SENSITIVITY = 0.005;
+// Touch fingers move far fewer pixels than a mouse drag, so look-around feels
+// sluggish at the mouse rate; a larger multiplier makes the PUBG-style touch
+// camera responsive without affecting mouse precision.
+const TOUCH_ORBIT_SENSITIVITY = 0.013;
 const ZOOM_SENSITIVITY = 0.8;
 const LOOK_HEIGHT = 1.5; // aim at the character's head, not its feet
 const CAMERA_NEAR_MIN = 2; // never pull closer than this when a wall intrudes
@@ -58,9 +62,13 @@ export function useThirdPersonCamera() {
     };
     const onMove = (event) => {
       if (!dragging) return;
-      yaw.current -= (event.clientX - lastX) * ORBIT_SENSITIVITY;
+      const sensitivity =
+        event.pointerType === "touch"
+          ? TOUCH_ORBIT_SENSITIVITY
+          : ORBIT_SENSITIVITY;
+      yaw.current -= (event.clientX - lastX) * sensitivity;
       pitch.current = clamp(
-        pitch.current - (event.clientY - lastY) * ORBIT_SENSITIVITY,
+        pitch.current - (event.clientY - lastY) * sensitivity,
         PITCH_MIN,
         PITCH_MAX
       );
