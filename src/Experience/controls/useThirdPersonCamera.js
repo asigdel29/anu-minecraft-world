@@ -94,15 +94,27 @@ export function useThirdPersonCamera() {
   // Place the camera on its orbit around `target`, looking at the head. If
   // `colliders` are given and the house wall would sit between the head and the
   // camera, pull the camera in to the wall so the view never clips inside.
-  const apply = (camera, target, playerYaw, isMoving, step, colliders) => {
+  // `alignment` is the cosine between the travel direction and the camera's
+  // forward axis, so the auto-follow only re-centers on forward-ish travel.
+  const apply = (
+    camera,
+    target,
+    playerYaw,
+    isMoving,
+    alignment,
+    step,
+    colliders
+  ) => {
     aim.current.set(target.x, target.y + LOOK_HEIGHT, target.z);
 
-    // Auto-follow: ease the yaw to sit behind the player while moving (and not
-    // while the user is dragging the orbit). See followYaw for the easing.
+    // Auto-follow: ease the yaw to sit behind the player while moving forward
+    // (and not while the user is dragging the orbit). See followYaw for the
+    // easing and the alignment gate that prevents strafe/backpedal whip.
     yaw.current = followYaw(yaw.current, playerYaw, {
       isMoving,
       isDragging: isDragging.current,
       step,
+      alignment,
     });
 
     const cosPitch = Math.cos(pitch.current);
