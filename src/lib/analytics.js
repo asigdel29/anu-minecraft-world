@@ -30,5 +30,17 @@ export async function initAnalytics() {
     capture_performance: true,
     enable_heatmaps: true,
     disable_session_recording: false,
+    session_recording: {
+      // The experience is a full-screen WebGL canvas, which rrweb does not
+      // record by default — so without this the replay is a blank white screen.
+      // Record the canvas as periodic images (kept light with a modest frame
+      // rate and quality). This must also be enabled in the project's replay
+      // settings (Settings -> Replay -> "Capture canvas") for frames to store,
+      // and the canvas sets preserveDrawingBuffer so snapshots are not blank.
+      captureCanvas: {
+        canvasFps: 4,
+        canvasQuality: "0.4",
+      },
+    },
   });
 }
