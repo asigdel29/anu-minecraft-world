@@ -1,0 +1,71 @@
+@use "../../index.scss" as styles;
+
+// Tour HUD pinned to the bottom-centre, above the in-world scene. Only the card
+// is interactive so the rest of the screen still orbits the camera.
+.tour-controls {
+  position: fixed;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 96;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+
+  font-family: "Minecraft", ui-monospace, Menlo, Consolas, monospace;
+  text-align: center;
+
+  background-color: styles.$color-base-overlay-gray;
+  border: 2px solid styles.$color-base-dark-gray-four;
+  box-shadow: inset 2px 2px #ffffff20, inset -2px -2px #00000060;
+
+  &-label {
+    color: styles.$color-font-primary-yellow;
+    font-size: 18px;
+  }
+
+  &-hint {
+    color: styles.$color-base-gray;
+    font-size: 12px;
+  }
+
+  &-buttons {
+    display: flex;
+    gap: 10px;
+  }
+}
+
+.tour-btn {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 16px;
+
+  color: styles.$color-base-gray;
+  background-color: styles.$color-base-dark-gray-three;
+  border: 2px solid styles.$color-base-dark-gray;
+  box-shadow: inset -2px -2px 0 0 #00000055, inset 2px 2px 0 0 #ffffff22;
+  cursor: pointer;
+  transition: background 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background-color: styles.$color-base-dark-gray-two;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &--end {
+    color: #11201f;
+    background-color: styles.$color-base-green;
+    border-color: #0f7d74;
+
+    &:hover {
+      background-color: #20c4b5;
+    }
+  }
+}

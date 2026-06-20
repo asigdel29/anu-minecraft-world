@@ -14,6 +14,7 @@ import OrientationHint from "./components/OrientationHint/OrientationHint";
 import CustomizeButton from "./components/CustomizeButton/CustomizeButton";
 import ShareButton from "./components/ShareButton/ShareButton";
 import ChatOverlay from "./components/Chat/ChatOverlay";
+import TourControls from "./components/TourControls/TourControls";
 import CharacterCustomizer from "./components/CharacterCustomizer/CharacterCustomizer";
 import Welcome from "./components/Welcome/Welcome";
 import { useCharacterStore } from "./Experience/stores/characterStore";
@@ -78,6 +79,7 @@ function App() {
       <InfoButton />
       <ControlsHint />
       <InteractPrompt />
+      <TourControls />
       <TouchControls />
       <OrientationHint />
       <ChatOverlay />

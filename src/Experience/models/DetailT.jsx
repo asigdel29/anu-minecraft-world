@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
-import { useTexture } from "@react-three/drei";
+import { Billboard, Text, useTexture } from "@react-three/drei";
 
 import { useModalStore } from "../stores/modalStore";
 import { registerInteractable } from "../stores/interactionStore";
-import { tourProgress } from "../stores/tourStore";
-import { FLOOR_RANGES, posterBrightness } from "../controls/tour";
+import { tourProgress, useTourStore } from "../stores/tourStore";
+import { FLOOR_KEYS, FLOOR_RANGES, posterBrightness } from "../controls/tour";
 import { FLOORS, PANELS } from "../../data/floors";
 
 import About from "../../components/About/About";
@@ -50,7 +50,16 @@ const prepOverlayTexture = (texture) => {
 // zone. During the guided tour the photo brightens with a pulse while the camera
 // frames its floor (see posterBrightness); hover still tints the matte and the
 // click overlay as before.
-function Panel({ panel, floor, texture, matteColor, hovered, onHover, onClick }) {
+function Panel({
+  panel,
+  floor,
+  texture,
+  matteColor,
+  hovered,
+  showBadge,
+  onHover,
+  onClick,
+}) {
   const photoMaterial = useRef();
   const range = FLOOR_RANGES[panel.floor];
   const [mw, mh] = PANEL.matte;
@@ -91,6 +100,23 @@ function Panel({ panel, floor, texture, matteColor, hovered, onHover, onClick })
           depthWrite={false}
         />
       </mesh>
+      {/* During the tour, the framed floor's posters advertise that they can be
+          opened. The click zone above still opens them on click/tap. */}
+      {showBadge && (
+        <Billboard position={[0, mh / 2 + 0.45, 0.1]}>
+          <Text
+            font="/fonts/Minecraft-Regular.ttf"
+            fontSize={0.26}
+            color="#ffe16b"
+            outlineWidth={0.02}
+            outlineColor="#000000"
+            anchorX="center"
+            anchorY="middle"
+          >
+            E to interact
+          </Text>
+        </Billboard>
+      )}
     </group>
   );
 }
@@ -111,6 +137,9 @@ const containSize = (texture, boxW, boxH) => {
 export default function Model(props) {
   const [hoveredPanel, setHoveredPanel] = useState(null);
   const { openModal } = useModalStore();
+  const isTourActive = useTourStore((s) => s.isTourActive);
+  const tourFloorKey = useTourStore((s) => FLOOR_KEYS[s.currentFloor]);
+  const activeFloorKey = isTourActive ? tourFloorKey : null;
 
   const srcByID = useMemo(
     () => Object.fromEntries(PANELS.map((p) => [p.id, p.img])),
@@ -156,6 +185,7 @@ export default function Model(props) {
           texture={textures[panel.id]}
           matteColor={panel.modal === "project" ? PROJECT_MATTE : ABOUT_MATTE}
           hovered={hoveredPanel === panel.id}
+          showBadge={panel.floor === activeFloorKey}
           onHover={setHoveredPanel}
           onClick={handleClick}
         />
