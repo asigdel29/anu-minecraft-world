@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -7,6 +7,8 @@ import { Text, Billboard } from "@react-three/drei";
 import PlayerModel from "./models/PlayerT";
 import { useKeyboard } from "./controls/useKeyboard";
 import { useThirdPersonCamera } from "./controls/useThirdPersonCamera";
+import { useTourCamera } from "./controls/useTourCamera";
+import { advanceProgress } from "./controls/tour";
 import {
   MAX_STEP_HEIGHT,
   isBlockedByObstacle,
@@ -14,6 +16,7 @@ import {
   isWalkableStepDown,
 } from "./controls/stepUp";
 import { useModalStore } from "./stores/modalStore";
+import { tourProgress, useTourStore } from "./stores/tourStore";
 import {
   getInteractables,
   useInteractionStore,
@@ -59,10 +62,24 @@ export default function Player({ colliders, sendState }) {
   const group = useRef();
   const keys = useKeyboard();
   const orbitCamera = useThirdPersonCamera();
+  const tourCamera = useTourCamera();
   const camera = useThree((state) => state.camera);
   const { isModalOpen } = useModalStore();
+  const isTourActive = useTourStore((state) => state.isTourActive);
+  const endTour = useTourStore((state) => state.endTour);
   const setPrompt = useInteractionStore((state) => state.setPrompt);
   const [action, setAction] = useState("idle");
+
+  // Escape ends the guided tour at any time, handing control back to the
+  // character. The handler is harmless when no tour is running (endTour is
+  // idempotent), so it can stay registered for the component's lifetime.
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.code === "Escape") endTour();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [endTour]);
 
   // Local character appearance, broadcast to peers and used to tint the model
   // and label the avatar.
@@ -132,6 +149,17 @@ export default function Player({ colliders, sendState }) {
     if (!group.current) return;
     const step = Math.min(delta, 0.1);
     const held = keys.current;
+
+    // --- guided tour ---------------------------------------------------------
+    // While the tour plays it owns the camera: advance the timeline, pose the
+    // camera along the scripted path, and suspend all character control. The
+    // tour ends itself when it reaches the end (or on Escape, handled above).
+    if (isTourActive) {
+      tourProgress.value = advanceProgress(tourProgress.value, step);
+      tourCamera.apply(camera, tourProgress.value);
+      if (tourProgress.value >= 1) endTour();
+      return;
+    }
 
     // --- horizontal travel ---------------------------------------------------
     // Camera-relative axes, flattened onto the ground so looking down never

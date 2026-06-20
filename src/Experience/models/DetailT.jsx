@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import * as THREE from "three";
+import { useFrame } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 
 import { useModalStore } from "../stores/modalStore";
 import { registerInteractable } from "../stores/interactionStore";
+import { tourProgress } from "../stores/tourStore";
+import { FLOOR_RANGES, posterBrightness } from "../controls/tour";
 import { FLOORS, PANELS } from "../../data/floors";
 
 import About from "../../components/About/About";
@@ -42,6 +45,55 @@ const prepOverlayTexture = (texture) => {
   texture.repeat.set(1, 1);
   texture.needsUpdate = true;
 };
+
+// A single framed poster: a matte backing, the photo, and a transparent click
+// zone. During the guided tour the photo brightens with a pulse while the camera
+// frames its floor (see posterBrightness); hover still tints the matte and the
+// click overlay as before.
+function Panel({ panel, floor, texture, matteColor, hovered, onHover, onClick }) {
+  const photoMaterial = useRef();
+  const range = FLOOR_RANGES[panel.floor];
+  const [mw, mh] = PANEL.matte;
+  const [iw, ih] = containSize(texture, PANEL.photo[0], PANEL.photo[1]);
+
+  useFrame((state) => {
+    if (!photoMaterial.current) return;
+    const brightness = range
+      ? posterBrightness(tourProgress.value, range, state.clock.elapsedTime)
+      : 1;
+    photoMaterial.current.color.setScalar(brightness);
+  });
+
+  return (
+    <group position={[panel.x, floor.y, floor.z]}>
+      <mesh position={[0, 0, -0.01]} raycast={() => null}>
+        <planeGeometry args={[mw, mh]} />
+        <meshBasicMaterial
+          color={hovered ? "#3a2a18" : matteColor}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh raycast={() => null}>
+        <planeGeometry args={[iw, ih]} />
+        <meshBasicMaterial ref={photoMaterial} map={texture} toneMapped={false} />
+      </mesh>
+      <mesh
+        position={[0, 0, 0.04]}
+        onPointerOver={() => onHover(panel.id)}
+        onPointerOut={() => onHover(null)}
+        onClick={() => onClick(panel)}
+      >
+        <planeGeometry args={PANEL.click} />
+        <meshBasicMaterial
+          transparent
+          opacity={hovered ? 0.12 : 0}
+          color={"#1aa89c"}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  );
+}
 
 // Fit an image fully inside a box (contain), preserving aspect ratio.
 const containSize = (texture, boxW, boxH) => {
@@ -96,47 +148,18 @@ export default function Model(props) {
 
   return (
     <group {...props} dispose={null}>
-      {PANELS.map((panel) => {
-        const floor = FLOORS[panel.floor];
-        const matteColor =
-          panel.modal === "project" ? PROJECT_MATTE : ABOUT_MATTE;
-        const [mw, mh] = PANEL.matte;
-        const [iw, ih] = containSize(
-          textures[panel.id],
-          PANEL.photo[0],
-          PANEL.photo[1]
-        );
-        const hovered = hoveredPanel === panel.id;
-        return (
-          <group key={panel.id} position={[panel.x, floor.y, floor.z]}>
-            <mesh position={[0, 0, -0.01]} raycast={() => null}>
-              <planeGeometry args={[mw, mh]} />
-              <meshBasicMaterial
-                color={hovered ? "#3a2a18" : matteColor}
-                toneMapped={false}
-              />
-            </mesh>
-            <mesh raycast={() => null}>
-              <planeGeometry args={[iw, ih]} />
-              <meshBasicMaterial map={textures[panel.id]} toneMapped={false} />
-            </mesh>
-            <mesh
-              position={[0, 0, 0.04]}
-              onPointerOver={() => setHoveredPanel(panel.id)}
-              onPointerOut={() => setHoveredPanel(null)}
-              onClick={() => handleClick(panel)}
-            >
-              <planeGeometry args={PANEL.click} />
-              <meshBasicMaterial
-                transparent
-                opacity={hovered ? 0.12 : 0}
-                color={"#1aa89c"}
-                depthWrite={false}
-              />
-            </mesh>
-          </group>
-        );
-      })}
+      {PANELS.map((panel) => (
+        <Panel
+          key={panel.id}
+          panel={panel}
+          floor={FLOORS[panel.floor]}
+          texture={textures[panel.id]}
+          matteColor={panel.modal === "project" ? PROJECT_MATTE : ABOUT_MATTE}
+          hovered={hoveredPanel === panel.id}
+          onHover={setHoveredPanel}
+          onClick={handleClick}
+        />
+      ))}
     </group>
   );
 }
