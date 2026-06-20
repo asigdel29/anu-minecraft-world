@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 
 import {
+  MAX_STEP_DOWN,
   MAX_STEP_HEIGHT,
   isBlockedByObstacle,
   isClimbableStep,
+  isWalkableStepDown,
 } from "./stepUp";
 
 describe("isBlockedByObstacle", () => {
@@ -43,5 +45,34 @@ describe("isClimbableStep", () => {
 
   it("accepts the exact step-height boundary", () => {
     expect(isClimbableStep(baseY + MAX_STEP_HEIGHT, baseY)).toBe(true);
+  });
+});
+
+describe("isWalkableStepDown", () => {
+  const currentY = 10;
+
+  it("steps down onto a surface within the drop limit", () => {
+    expect(isWalkableStepDown(currentY, currentY - 0.4)).toBe(true);
+  });
+
+  it("steps down just inside the drop limit", () => {
+    expect(isWalkableStepDown(currentY, currentY - (MAX_STEP_DOWN - 0.01))).toBe(
+      true
+    );
+  });
+
+  it("rejects a drop beyond the step-down limit (a real fall)", () => {
+    expect(isWalkableStepDown(currentY, currentY - (MAX_STEP_DOWN + 0.01))).toBe(
+      false
+    );
+  });
+
+  it("does not treat a surface at or above the feet as a step down", () => {
+    expect(isWalkableStepDown(currentY, currentY)).toBe(false);
+    expect(isWalkableStepDown(currentY, currentY + 0.2)).toBe(false);
+  });
+
+  it("rejects when no ground was found", () => {
+    expect(isWalkableStepDown(currentY, null)).toBe(false);
   });
 });

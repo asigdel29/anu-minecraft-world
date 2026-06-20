@@ -11,6 +11,7 @@ import {
   MAX_STEP_HEIGHT,
   isBlockedByObstacle,
   isClimbableStep,
+  isWalkableStepDown,
 } from "./controls/stepUp";
 import { useModalStore } from "./stores/modalStore";
 import {
@@ -259,6 +260,18 @@ export default function Player({ colliders, sendState }) {
       velocityY.current += GRAVITY * step;
       let newY = position.current.y + velocityY.current * step;
       if (newY <= groundY) {
+        newY = groundY;
+        velocityY.current = 0;
+        grounded.current = true;
+      } else if (
+        grounded.current &&
+        isMoving &&
+        isWalkableStepDown(position.current.y, groundY)
+      ) {
+        // Walking off the lip of a stair tread: follow the step down instead of
+        // going airborne, so the character descends the staircase rather than
+        // dropping through the gap to the floor below. Jumps skip this because
+        // they set velocity upward and clear `grounded` above.
         newY = groundY;
         velocityY.current = 0;
         grounded.current = true;
