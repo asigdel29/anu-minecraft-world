@@ -8,6 +8,7 @@ import BackGrass from "./models/BackGrassT";
 import Detail from "./models/DetailT";
 import FrontGrass from "./models/FrontGrassT";
 import GrassSides from "./models/GrassSidesT";
+import Pool from "./models/Pool";
 import Mobs from "./models/MobsT";
 import Player from "./Player";
 import GateSign from "./GateSign";
@@ -92,6 +93,11 @@ const Scene = () => {
           <GrassSides />
         </group>
       </Suspense>
+      {/* The plaza swimming pool is built from primitives and registers as a
+          collider so the character walks on its water and low deck. */}
+      <group ref={registerCollider}>
+        <Pool />
+      </group>
       <Suspense fallback={null}>
         <Mobs />
       </Suspense>

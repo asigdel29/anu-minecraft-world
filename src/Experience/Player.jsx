@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -7,12 +7,16 @@ import { Text, Billboard } from "@react-three/drei";
 import PlayerModel from "./models/PlayerT";
 import { useKeyboard } from "./controls/useKeyboard";
 import { useThirdPersonCamera } from "./controls/useThirdPersonCamera";
+import { useTourCamera } from "./controls/useTourCamera";
+import { advanceProgress } from "./controls/tour";
 import {
   MAX_STEP_HEIGHT,
   isBlockedByObstacle,
   isClimbableStep,
+  isWalkableStepDown,
 } from "./controls/stepUp";
 import { useModalStore } from "./stores/modalStore";
+import { tourProgress, useTourStore } from "./stores/tourStore";
 import {
   getInteractables,
   useInteractionStore,
@@ -58,10 +62,24 @@ export default function Player({ colliders, sendState }) {
   const group = useRef();
   const keys = useKeyboard();
   const orbitCamera = useThirdPersonCamera();
+  const tourCamera = useTourCamera();
   const camera = useThree((state) => state.camera);
   const { isModalOpen } = useModalStore();
+  const isTourActive = useTourStore((state) => state.isTourActive);
+  const endTour = useTourStore((state) => state.endTour);
   const setPrompt = useInteractionStore((state) => state.setPrompt);
   const [action, setAction] = useState("idle");
+
+  // Escape ends the guided tour at any time, handing control back to the
+  // character. The handler is harmless when no tour is running (endTour is
+  // idempotent), so it can stay registered for the component's lifetime.
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.code === "Escape") endTour();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [endTour]);
 
   // Local character appearance, broadcast to peers and used to tint the model
   // and label the avatar.
@@ -131,6 +149,17 @@ export default function Player({ colliders, sendState }) {
     if (!group.current) return;
     const step = Math.min(delta, 0.1);
     const held = keys.current;
+
+    // --- guided tour ---------------------------------------------------------
+    // While the tour plays it owns the camera: advance the timeline, pose the
+    // camera along the scripted path, and suspend all character control. The
+    // tour ends itself when it reaches the end (or on Escape, handled above).
+    if (isTourActive) {
+      tourProgress.value = advanceProgress(tourProgress.value, step);
+      tourCamera.apply(camera, tourProgress.value);
+      if (tourProgress.value >= 1) endTour();
+      return;
+    }
 
     // --- horizontal travel ---------------------------------------------------
     // Camera-relative axes, flattened onto the ground so looking down never
@@ -262,6 +291,18 @@ export default function Player({ colliders, sendState }) {
         newY = groundY;
         velocityY.current = 0;
         grounded.current = true;
+      } else if (
+        grounded.current &&
+        isMoving &&
+        isWalkableStepDown(position.current.y, groundY)
+      ) {
+        // Walking off the lip of a stair tread: follow the step down instead of
+        // going airborne, so the character descends the staircase rather than
+        // dropping through the gap to the floor below. Jumps skip this because
+        // they set velocity upward and clear `grounded` above.
+        newY = groundY;
+        velocityY.current = 0;
+        grounded.current = true;
       } else {
         grounded.current = false;
       }
@@ -328,11 +369,17 @@ export default function Player({ colliders, sendState }) {
     // Place the orbit camera last, after this frame's position is settled, so
     // it tracks the character without a frame of lag; pass the colliders so it
     // can pull in when the house would come between the camera and the head.
+    // `alignment` is how closely this frame's travel matches the camera's
+    // forward axis (both flattened and normalized); the camera only re-centers
+    // behind the player on forward-ish travel, so strafing or backing up no
+    // longer whips the view around.
+    const alignment = isMoving ? forward.current.dot(move.current) : 0;
     orbitCamera.apply(
       camera,
       position.current,
       yaw.current,
       isMoving,
+      alignment,
       step,
       colliders
     );

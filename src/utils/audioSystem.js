@@ -7,14 +7,6 @@ const sounds = {
     src: ["/audio/sfx/ButtonClick.mp3"],
     volume: 1.0,
   }),
-  doorOpening: new Howl({
-    src: ["/audio/sfx/DoorOpening.mp3"],
-    volume: 0.4,
-  }),
-  doorClosing: new Howl({
-    src: ["/audio/sfx/DoorClosing.mp3"],
-    volume: 0.4,
-  }),
   backgroundMusic: new Howl({
     src: ["/audio/music/Sweden.mp3"],
     loop: true,
