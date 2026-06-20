@@ -328,11 +328,17 @@ export default function Player({ colliders, sendState }) {
     // Place the orbit camera last, after this frame's position is settled, so
     // it tracks the character without a frame of lag; pass the colliders so it
     // can pull in when the house would come between the camera and the head.
+    // `alignment` is how closely this frame's travel matches the camera's
+    // forward axis (both flattened and normalized); the camera only re-centers
+    // behind the player on forward-ish travel, so strafing or backing up no
+    // longer whips the view around.
+    const alignment = isMoving ? forward.current.dot(move.current) : 0;
     orbitCamera.apply(
       camera,
       position.current,
       yaw.current,
       isMoving,
+      alignment,
       step,
       colliders
     );
