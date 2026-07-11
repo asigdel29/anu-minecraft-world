@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useRef } from "react";
+import { Suspense, useMemo, useRef } from "react";
 
 import { Environment } from "@react-three/drei";
 
@@ -30,15 +30,34 @@ const Scene = () => {
   const { sendState } = useMultiplayer();
 
   // The character raycasts straight down against this list to find the ground.
-  // The house shell and the three terrain GLBs register here as they mount; the
-  // mobs, ambient props, and content panels are deliberately excluded so the
+  // The house shell and the terrain register here as they mount; the mobs,
+  // ambient props, and content panels are deliberately excluded so the
   // character can never "stand on" a cow or a picture frame.
+  //
+  // The registry supports removal so streamed terrain chunks can leave the
+  // list as they unmount. Two rules keep the per-frame raycasts safe: mutate
+  // only from effects or ref callbacks (the commit phase), never from inside a
+  // useFrame callback; and remove an object before its geometry is disposed,
+  // which effect-cleanup ordering guarantees. The player's intersectObjects
+  // call is synchronous, so the list can never change mid-traversal.
   const colliders = useRef([]);
-  const registerCollider = useCallback((object) => {
-    if (object && !colliders.current.includes(object)) {
-      colliders.current.push(object);
-    }
-  }, []);
+  const colliderRegistry = useMemo(
+    () => ({
+      add: (object) => {
+        if (object && !colliders.current.includes(object)) {
+          colliders.current.push(object);
+        }
+      },
+      remove: (object) => {
+        const index = colliders.current.indexOf(object);
+        if (index !== -1) colliders.current.splice(index, 1);
+      },
+    }),
+    []
+  );
+  // Ref-callback form kept for the static model wrappers below; React calls it
+  // with null on unmount, which add() ignores (static models never unmount).
+  const registerCollider = colliderRegistry.add;
 
   return (
     <>
