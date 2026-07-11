@@ -81,6 +81,7 @@ def apply_and_join(objects, name):
     joined = bpy.context.view_layer.objects.active
     joined.name = name
     joined.data.name = name
+    joined.hide_render = False  # sources may be render-hidden; dups must bake
     # Bake the object transform into the vertices: the engine's wrappers
     # render geometry without node transforms (gltfjsx style), so exported
     # meshes must be world-coordinate with an identity transform.
@@ -120,6 +121,15 @@ def bake_to_emissive(obj, size, image_name):
     """Bake diffuse (color+direct+indirect) to an image, then replace all of
     the object's materials with the single emissive-convention material."""
     img = bpy.data.images.new(image_name, size, size)
+    # Boolean cuts can leave empty material slots behind; drop them (and make
+    # sure every remaining material has a node tree) before wiring bake nodes.
+    bpy.context.view_layer.objects.active = obj
+    for i in reversed(range(len(obj.data.materials))):
+        if obj.data.materials[i] is None:
+            obj.data.materials.pop(index=i)
+    for mat in obj.data.materials:
+        if not mat.use_nodes:
+            mat.use_nodes = True
     for mat in obj.data.materials:
         nt = mat.node_tree
         node = nt.nodes.new("ShaderNodeTexImage")
@@ -130,7 +140,7 @@ def bake_to_emissive(obj, size, image_name):
     bpy.context.view_layer.objects.active = obj
     scene.render.engine = "CYCLES"
     scene.cycles.samples = BAKE_SAMPLES
-    scene.cycles.use_denoising = False
+    scene.cycles.use_denoising = True  # flat stylized colors denoise cleanly; interiors are indirect-lit and grainy without it
     scene.render.bake.use_pass_direct = True
     scene.render.bake.use_pass_indirect = True
     scene.render.bake.use_pass_color = True
@@ -185,7 +195,22 @@ def build_house():
     for src in parts:
         src.hide_render = True
     smart_uv(house)
+    # Interiors see the sun only through openings; without direct light the
+    # bake is indirect-only and grainy (bake results are never denoised).
+    # Warm ceiling lights per storey give clean, bright rooms; removed after.
+    interior_lights = []
+    for cz in (70.4, 75.9, 80.4):
+        light = bpy.data.lights.new(f"bake_room_{cz}", "AREA")
+        light.energy = 900
+        light.color = (1.0, 0.96, 0.88)
+        light.size = 14
+        lamp = bpy.data.objects.new(f"bake_room_{cz}", light)
+        lamp.location = (-5.5, -2.0, cz)
+        scene.collection.objects.link(lamp)
+        interior_lights.append(lamp)
     bake_to_emissive(house, HOUSE_ATLAS, "bake_house")
+    for lamp in interior_lights:
+        bpy.data.objects.remove(lamp, do_unlink=True)
     house.data.materials[0].name = "MergedBake"
     export_glb([house], os.path.join(OUT, "House.glb"))
     # Keep the baked house renderable: it casts the yard shadow during the
@@ -199,6 +224,7 @@ def split_quadrant(terrain, sx, sz):
     sx/sz are -1 or +1 in Blender x/y."""
     dup = terrain.copy()
     dup.data = terrain.data.copy()
+    dup.hide_render = False  # source is render-hidden; the dup must bake
     scene.collection.objects.link(dup)
     bm = bmesh.new()
     bm.from_mesh(dup.data)
@@ -308,6 +334,8 @@ if ref:
 # when dressing changes without touching the baked terrain or house.
 if len(argv) > 1 and argv[1] == "props":
     build_props()
+elif len(argv) > 1 and argv[1] == "house":
+    build_house()
 else:
     house = build_house()
     build_terrain()
