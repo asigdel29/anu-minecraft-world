@@ -1,3 +1,5 @@
+import { useCallback } from "react";
+
 import { useGLTF } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { KTX2Loader } from "three-stdlib";
@@ -25,4 +27,24 @@ export function useGLTFWithKTX2(path) {
   return useGLTF(path, DRACO_DECODER_PATH, true, (loader) => {
     loader.setKTX2Loader(ktx2Loader.detectSupport(gl));
   });
+}
+
+/**
+ * Returns a function that warms drei's loader cache for a .glb, configured
+ * identically to {@link useGLTFWithKTX2} so the later mount is a cache hit.
+ * A hook because KTX2 transcoding targets depend on the live renderer.
+ *
+ * @returns {(path: string) => void} preloader safe to call repeatedly.
+ */
+export function usePreloadGLTFWithKTX2() {
+  const { gl } = useThree();
+
+  return useCallback(
+    (path) => {
+      useGLTF.preload(path, DRACO_DECODER_PATH, true, (loader) => {
+        loader.setKTX2Loader(ktx2Loader.detectSupport(gl));
+      });
+    },
+    [gl]
+  );
 }

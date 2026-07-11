@@ -68,7 +68,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 
-export default function Player({ colliders, sendState }) {
+export default function Player({ colliders, sendState, positionRef }) {
   const group = useRef();
   const keys = useKeyboard();
   const orbitCamera = useThirdPersonCamera();
@@ -110,6 +110,12 @@ export default function Player({ colliders, sendState }) {
   const yaw = useRef(saved ? saved.yaw : Math.PI); // PI faces the house (-Z)
   const velocityY = useRef(0);
   const grounded = useRef(true);
+
+  // Share the live position vector with the scene (the chunk manager streams
+  // terrain around it). Same object, so no per-frame copy is ever needed.
+  useEffect(() => {
+    if (positionRef) positionRef.current = position.current;
+  }, [positionRef]);
   const nearest = useRef(null);
   const interactWasHeld = useRef(false);
   const stepTimer = useRef(0);
