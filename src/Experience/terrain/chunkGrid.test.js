@@ -7,6 +7,7 @@ import {
   initialSelection,
   selectChunks,
   deriveExtents,
+  shouldBeVisible,
 } from "./chunkGrid";
 
 const SIZE = 32;
@@ -99,6 +100,18 @@ describe("selectChunks", () => {
     const first = selectChunks(16, 16, chunks, SIZE, null, DEFAULT_RADII);
     const second = selectChunks(17, 15, chunks, SIZE, first, DEFAULT_RADII);
     expect(second).toBe(first);
+  });
+});
+
+describe("shouldBeVisible", () => {
+  it("shows a hidden group only within showRadius", () => {
+    expect(shouldBeVisible(9 * 9, false, 10, 15)).toBe(true);
+    expect(shouldBeVisible(12 * 12, false, 10, 15)).toBe(false);
+  });
+
+  it("hides a visible group only past hideRadius", () => {
+    expect(shouldBeVisible(12 * 12, true, 10, 15)).toBe(true);
+    expect(shouldBeVisible(16 * 16, true, 10, 15)).toBe(false);
   });
 });
 

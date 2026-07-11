@@ -3,8 +3,9 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 
 import Chunk from "./Chunk";
-import { DEFAULT_RADII, initialSelection, selectChunks } from "./chunkGrid";
+import { initialSelection, radiiForDevice, selectChunks } from "./chunkGrid";
 import { CHUNKS, CHUNKS_BY_ID, CHUNK_SIZE } from "./chunkManifest";
+import { isCoarsePointer } from "../controls/orientation";
 import { useChunkStore } from "./chunkStore";
 import { useNavStore } from "../stores/navStore";
 import { usePreloadGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
@@ -32,6 +33,9 @@ export default function ChunkManager({ colliderRegistry, playerPositionRef }) {
   const [selection, setSelection] = useState(() => initialSelection(CHUNKS));
   const selectionRef = useRef(selection);
   const accumulator = useRef(0);
+  // Streaming radii picked once per mount: touch devices get a tighter ring
+  // (fill rate and GPU memory are their ceiling), everything else the default.
+  const radii = useRef(radiiForDevice(isCoarsePointer()));
 
   // Flip the shared eagerReady flag once every spawn-eager chunk has mounted;
   // SceneSky waits on this before its one-time background capture. Chunks
@@ -63,7 +67,7 @@ export default function ChunkManager({ colliderRegistry, playerPositionRef }) {
       CHUNKS,
       CHUNK_SIZE,
       selectionRef.current,
-      DEFAULT_RADII
+      radii.current
     );
     // selectChunks returns the previous object untouched when nothing
     // changed, so this reference check skips the setState (and re-render)
