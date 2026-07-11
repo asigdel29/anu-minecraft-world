@@ -105,7 +105,7 @@ function Panel({
       {showBadge && (
         <Billboard position={[0, mh / 2 + 0.45, 0.1]}>
           <Text
-            font="/fonts/Minecraft-Regular.ttf"
+            font="/fonts/TitanOne-Regular.ttf"
             fontSize={0.26}
             color="#ffe16b"
             outlineWidth={0.02}

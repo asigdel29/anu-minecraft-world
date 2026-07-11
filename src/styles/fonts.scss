@@ -1,27 +1,13 @@
+// Titan One (SIL Open Font License, via Google Fonts) is the UI face for the
+// stylized-island look; browsers synthesize its bold and italic. The original
+// Minecraft pixel faces remain below solely for the in-world terminal, which
+// intentionally keeps its retro look (see Terminal3D.jsx / Terminal styles).
+
 @font-face {
-  font-family: "Minecraft";
-  src: url("/fonts/Minecraft-Italic.woff2") format("woff2"),
-    url("/fonts/Minecraft-Italic.woff") format("woff");
+  font-family: "Titan One";
+  src: url("/fonts/TitanOne-Regular.ttf") format("truetype");
   font-weight: normal;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Minecraft";
-  src: url("/fonts/Minecraft-Bold.woff2") format("woff2"),
-    url("/fonts/Minecraft-Bold.woff") format("woff");
-  font-weight: bold;
   font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Minecraft";
-  src: url("/fonts/Minecraft-BoldItalic.woff2") format("woff2"),
-    url("/fonts/Minecraft-BoldItalic.woff") format("woff");
-  font-weight: bold;
-  font-style: italic;
   font-display: swap;
 }
 
@@ -30,6 +16,15 @@
   src: url("/fonts/Minecraft-Regular.woff2") format("woff2"),
     url("/fonts/Minecraft-Regular.woff") format("woff");
   font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Minecraft";
+  src: url("/fonts/Minecraft-Bold.woff2") format("woff2"),
+    url("/fonts/Minecraft-Bold.woff") format("woff");
+  font-weight: bold;
   font-style: normal;
   font-display: swap;
 }

@@ -2,7 +2,7 @@ import { Text } from "@react-three/drei";
 
 // The owner name shown on the baked sign board at the gate. Edit NAME to change
 // it — the board geometry is in the house model; only this text is overlaid.
-const FONT = "/fonts/Minecraft-Regular.ttf";
+const FONT = "/fonts/TitanOne-Regular.ttf";
 const NAME = "anu's house";
 
 export default function GateSign() {

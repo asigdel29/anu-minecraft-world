@@ -474,7 +474,7 @@ export default function Player({ colliders, sendState, positionRef }) {
       {username && (
         <Billboard position={[0, 2.4, 0]}>
           <Text
-            font="/fonts/Minecraft-Regular.ttf"
+            font="/fonts/TitanOne-Regular.ttf"
             fontSize={0.18}
             color="#ffe16b"
             anchorX="center"

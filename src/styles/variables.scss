@@ -1,15 +1,19 @@
+// Stylized-island palette: saturated violet accent over deep blue-slate
+// panels, with a warm yellow for highlights. Variable names are kept from the
+// original theme so no component stylesheet needs touching to re-theme.
+
 //UI - General
-$color-base-green: #1aa89c; // Deep Ocean teal accent
-$color-base-gray: #c6c6c6;
-$color-base-dark-gray: #4c4c4c;
-$color-base-dark-gray-two: #585659;
-$color-base-dark-gray-three: #313233;
-$color-base-dark-gray-four: #131311;
+$color-base-green: #7a5cff; // primary accent (violet)
+$color-base-gray: #dfe3f7;
+$color-base-dark-gray: #3a3760;
+$color-base-dark-gray-two: #454270;
+$color-base-dark-gray-three: #2a2847;
+$color-base-dark-gray-four: #17152c;
 
 // UI - Components
-$color-base-header-gray: #494949;
-$color-base-overlay-gray: #2929298a;
+$color-base-header-gray: #383464;
+$color-base-overlay-gray: #221f3d8a;
 
 //Fonts
-$color-font-primary-yellow: #ffe16b; // Deep Ocean soft yellow highlight
-$color-font-dark-gray: #4c4c4c;
+$color-font-primary-yellow: #ffd54a; // warm highlight
+$color-font-dark-gray: #3a3760;

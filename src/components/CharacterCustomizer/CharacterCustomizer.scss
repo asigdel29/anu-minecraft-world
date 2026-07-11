@@ -99,7 +99,7 @@
 }
 
 .preview-name {
-  font-family: "Minecraft", ui-monospace, Menlo, Consolas, monospace;
+  font-family: "Titan One", ui-monospace, Menlo, Consolas, monospace;
   font-size: 14px;
   color: styles.$color-font-primary-yellow;
   text-shadow: 1px 1px 0 #1a1a1a;
@@ -127,7 +127,7 @@
 }
 
 .swatch-label {
-  font-family: "Minecraft", ui-monospace, monospace;
+  font-family: "Titan One", ui-monospace, monospace;
   font-size: 12px;
   color: styles.$color-font-primary-yellow;
   text-transform: lowercase;
@@ -135,7 +135,7 @@
 }
 
 .name-input {
-  font-family: "Minecraft", ui-monospace, Menlo, Consolas, monospace;
+  font-family: "Titan One", ui-monospace, Menlo, Consolas, monospace;
   font-size: 14px;
   padding: 6px 10px;
   background: styles.$color-base-dark-gray-four;
@@ -191,7 +191,7 @@
 
 /* ─── Save Button ─── */
 .save-btn {
-  font-family: "Minecraft", ui-monospace, monospace;
+  font-family: "Titan One", ui-monospace, monospace;
   font-size: 14px;
   padding: 10px 20px;
   margin-top: 0.5rem;
@@ -208,10 +208,10 @@
     background-color: styles.$color-base-green;
     color: white;
     border-color: white;
-    box-shadow: inset 2px 2px #53d95ac0, inset -2px -2px #118316c0;
+    box-shadow: inset 2px 2px #a98cffc0, inset -2px -2px #5636c9c0;
   }
 
   &:active {
-    box-shadow: inset -2px -2px #53d95ac0, inset 2px 2px #118316c0;
+    box-shadow: inset -2px -2px #a98cffc0, inset 2px 2px #5636c9c0;
   }
 }
