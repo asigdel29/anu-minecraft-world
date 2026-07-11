@@ -37,3 +37,6 @@ blender files/
 
 # Blender backup files
 *.blend[0-9]
+
+# Wrangler dev state
+.wrangler/
