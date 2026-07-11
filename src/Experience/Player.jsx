@@ -33,6 +33,7 @@ import {
 } from "./stores/interactionStore";
 import { playFootstep } from "../utils/footsteps";
 import { useCharacterStore } from "./stores/characterStore";
+import { WORLD_EXTENTS } from "./terrain/chunkManifest";
 
 // The character walks the world's baked geometry: a downward ray finds the
 // surface under it each frame so it follows the uneven lawn and climbs onto the
@@ -56,9 +57,15 @@ const WALL_SLOPE_LIMIT = 0.5; // |normal.y| above this is floor, not wall
 
 const INTERACT_RANGE = 3.2; // how close to a panel/terminal to prompt for E
 
-// Soft world boundary: a box around the lawn that keeps the character from
-// wandering off the terrain into the void. Generous enough to reach every mob.
-const BOUNDS = { minX: -45, maxX: 45, minZ: -50, maxZ: 55 };
+// Soft world boundary: a box around the terrain that keeps the character from
+// wandering off into the void. Sourced from the chunk manifest so the bounds
+// grow with the world instead of drifting out of sync with it.
+const BOUNDS = WORLD_EXTENTS;
+// Falling past this height means the character has left the world entirely
+// (terrain sits around y 60–78); respawn rather than fall forever. The
+// ground-ray hold and the soft bounds make this nearly unreachable, but an
+// open island with cliff edges deserves the backstop.
+const MIN_WORLD_Y = 40;
 // Footstep cadence (seconds between steps); a touch quicker while running.
 const STEP_WALK = 0.34;
 const STEP_RUN = 0.26;
@@ -68,7 +75,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 
-export default function Player({ colliders, sendState }) {
+export default function Player({ colliders, sendState, positionRef }) {
   const group = useRef();
   const keys = useKeyboard();
   const orbitCamera = useThirdPersonCamera();
@@ -100,8 +107,12 @@ export default function Player({ colliders, sendState }) {
   const legColor = useCharacterStore((s) => s.legColor);
   const colors = { headColor, bodyColor, legColor };
 
-  // Resume where the visitor left off, if a valid transform was saved.
-  const saved = useMemo(() => loadPlayerState(), []);
+  // Resume where the visitor left off, if a valid transform was saved and it
+  // still lies inside the walkable world.
+  const saved = useMemo(
+    () => loadPlayerState({ ...WORLD_EXTENTS, minY: MIN_WORLD_Y }),
+    []
+  );
 
   // Live state kept in refs so per-frame motion never triggers a re-render.
   const position = useRef(
@@ -110,6 +121,12 @@ export default function Player({ colliders, sendState }) {
   const yaw = useRef(saved ? saved.yaw : Math.PI); // PI faces the house (-Z)
   const velocityY = useRef(0);
   const grounded = useRef(true);
+
+  // Share the live position vector with the scene (the chunk manager streams
+  // terrain around it). Same object, so no per-frame copy is ever needed.
+  useEffect(() => {
+    if (positionRef) positionRef.current = position.current;
+  }, [positionRef]);
   const nearest = useRef(null);
   const interactWasHeld = useRef(false);
   const stepTimer = useRef(0);
@@ -357,6 +374,14 @@ export default function Player({ colliders, sendState }) {
         grounded.current = false;
       }
       position.current.y = newY;
+    }
+
+    // Void backstop: past all other safeguards, never let the character fall
+    // out of the world — snap back to spawn instead.
+    if (position.current.y < MIN_WORLD_Y) {
+      position.current.copy(SPAWN);
+      velocityY.current = 0;
+      grounded.current = true;
     }
 
     group.current.position.copy(position.current);

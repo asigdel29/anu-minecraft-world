@@ -4,10 +4,7 @@ import { Environment } from "@react-three/drei";
 
 import House from "./models/HouseT";
 import SceneSky from "./SceneSky";
-import BackGrass from "./models/BackGrassT";
 import Detail from "./models/DetailT";
-import FrontGrass from "./models/FrontGrassT";
-import GrassSides from "./models/GrassSidesT";
 import Pool from "./models/Pool";
 import StairRamp from "./models/StairRamp";
 import Mobs from "./models/MobsT";
@@ -16,6 +13,7 @@ import GateSign from "./GateSign";
 import Terminal3D from "./Terminal3D";
 import AmbientLife from "./AmbientLife";
 import RemotePlayers from "./RemotePlayers";
+import ChunkManager from "./terrain/ChunkManager";
 import { useMultiplayer } from "./stores/useMultiplayer";
 
 // The world is static, baked geometry. It used to be toured by a scripted
@@ -24,6 +22,11 @@ import { useMultiplayer } from "./stores/useMultiplayer";
 // character controller in Player.jsx, so Scene just composes the world.
 const Scene = () => {
   const houseRef = useRef();
+
+  // The player's live position vector, shared by reference so the chunk
+  // manager can read it every frame without a re-render or a copy. Player
+  // installs its own position vector here on mount.
+  const playerPositionRef = useRef(null);
 
   // Multiplayer presence — opens the relay socket and returns the throttled
   // state broadcaster the Player feeds. Runs solo when no host is configured.
@@ -98,21 +101,13 @@ const Scene = () => {
       <Suspense fallback={null}>
         <GateSign />
       </Suspense>
-      <Suspense fallback={null}>
-        <group ref={registerCollider}>
-          <BackGrass />
-        </group>
-      </Suspense>
-      <Suspense fallback={null}>
-        <group ref={registerCollider}>
-          <FrontGrass />
-        </group>
-      </Suspense>
-      <Suspense fallback={null}>
-        <group ref={registerCollider}>
-          <GrassSides />
-        </group>
-      </Suspense>
+      {/* The terrain streams in and out around the player; each chunk mounts
+          in its own Suspense boundary (inside the manager) and registers its
+          colliders through the registry as it comes and goes. */}
+      <ChunkManager
+        colliderRegistry={colliderRegistry}
+        playerPositionRef={playerPositionRef}
+      />
       {/* The plaza swimming pool is built from primitives and registers as a
           collider so the character walks on its water and low deck. */}
       <group ref={registerCollider}>
@@ -129,7 +124,11 @@ const Scene = () => {
       {/* The controllable character. It owns the camera each frame and raycasts
           against the registered colliders to follow the ground. */}
       <Suspense fallback={null}>
-        <Player colliders={colliders} sendState={sendState} />
+        <Player
+          colliders={colliders}
+          sendState={sendState}
+          positionRef={playerPositionRef}
+        />
       </Suspense>
       {/* Other visitors currently connected to the same world. */}
       <Suspense fallback={null}>

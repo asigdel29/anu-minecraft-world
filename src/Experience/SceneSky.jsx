@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { useThree } from "@react-three/fiber";
 import { useProgress } from "@react-three/drei";
 
+import { useChunkStore } from "./terrain/chunkStore";
+
 /**
  * Bakes the scene's own surrounding exterior into the background so the house
  * windows look out onto the real world instead of a flat sky.
@@ -20,8 +22,11 @@ import { useProgress } from "@react-three/drei";
  *     within a few units of the centre), leaving only the exterior terrain
  *     (nearest grass ~13u out) and the sky behind it.
  *
- * The capture runs once, after the GLB models finish loading (gated on
- * {@link useProgress}); there is no per-frame cost.
+ * The capture runs once, after the initial GLB models finish loading and
+ * every spawn-eager terrain chunk has mounted (the terrain seen through the
+ * windows). The chunk-store flag — not the global loading manager alone —
+ * is what proves the eager terrain is in the graph, so terrain streamed in
+ * later can never race or re-trigger the capture. There is no per-frame cost.
  */
 
 // Camera orbit centre, at the window-band height (see Scene.jsx camera curve).
@@ -35,10 +40,11 @@ export default function SceneSky({ houseRef }) {
   const gl = useThree((state) => state.gl);
   const scene = useThree((state) => state.scene);
   const loading = useProgress((state) => state.active);
+  const eagerReady = useChunkStore((state) => state.eagerReady);
   const captured = useRef(false);
 
   useEffect(() => {
-    if (loading || captured.current) return;
+    if (loading || !eagerReady || captured.current) return;
     captured.current = true;
 
     // Let one frame settle so every model is in the graph before the capture.
@@ -64,7 +70,7 @@ export default function SceneSky({ houseRef }) {
     });
 
     return () => cancelAnimationFrame(raf);
-  }, [loading, gl, scene, houseRef]);
+  }, [loading, eagerReady, gl, scene, houseRef]);
 
   return null;
 }
