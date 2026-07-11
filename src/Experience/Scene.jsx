@@ -6,7 +6,6 @@ import House from "./models/HouseT";
 import SceneSky from "./SceneSky";
 import Detail from "./models/DetailT";
 import Pool from "./models/Pool";
-import StairRamp from "./models/StairRamp";
 import Mobs from "./models/MobsT";
 import Player from "./Player";
 import GateSign from "./GateSign";
@@ -121,11 +120,6 @@ const Scene = () => {
           collider so the character walks on its water and low deck. */}
       <group ref={registerCollider}>
         <Pool />
-      </group>
-      {/* Invisible ramp bridging the middle -> top staircase flight so the
-          character does not fall through the gap between its treads. */}
-      <group ref={registerCollider}>
-        <StairRamp />
       </group>
       <Suspense fallback={null}>
         <Mobs />

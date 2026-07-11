@@ -8,6 +8,7 @@ import {
   selectChunks,
   deriveExtents,
   shouldBeVisible,
+  chunkRangeDistance,
 } from "./chunkGrid";
 
 const SIZE = 32;
@@ -100,6 +101,24 @@ describe("selectChunks", () => {
     const first = selectChunks(16, 16, chunks, SIZE, null, DEFAULT_RADII);
     const second = selectChunks(17, 15, chunks, SIZE, first, DEFAULT_RADII);
     expect(second).toBe(first);
+  });
+});
+
+describe("chunkRangeDistance", () => {
+  it("is zero anywhere inside a spanned chunk", () => {
+    const quad = { cx: 0, cz: -5, spanX: 5, spanZ: 5 };
+    expect(chunkRangeDistance(0, -5, quad)).toBe(0);
+    expect(chunkRangeDistance(4, -1, quad)).toBe(0);
+    expect(chunkRangeDistance(2, -3, quad)).toBe(0);
+  });
+  it("measures to the nearest edge outside the range", () => {
+    const quad = { cx: 0, cz: -5, spanX: 5, spanZ: 5 };
+    expect(chunkRangeDistance(-1, -3, quad)).toBe(1);
+    expect(chunkRangeDistance(7, 0, quad)).toBe(3);
+    expect(chunkRangeDistance(-2, 2, quad)).toBe(3);
+  });
+  it("matches chunkDistance for span-1 chunks", () => {
+    expect(chunkRangeDistance(3, 3, { cx: 0, cz: 0 })).toBe(3);
   });
 });
 
