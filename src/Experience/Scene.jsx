@@ -6,7 +6,6 @@ import House from "./models/HouseT";
 import SceneSky from "./SceneSky";
 import Detail from "./models/DetailT";
 import Pool from "./models/Pool";
-import Mobs from "./models/MobsT";
 import Player from "./Player";
 import GateSign from "./GateSign";
 import Terminal3D from "./Terminal3D";
@@ -121,9 +120,6 @@ const Scene = () => {
       <group ref={registerCollider}>
         <Pool />
       </group>
-      <Suspense fallback={null}>
-        <Mobs />
-      </Suspense>
       {/* The controllable character. It owns the camera each frame and raycasts
           against the registered colliders to follow the ground. */}
       <Suspense fallback={null}>

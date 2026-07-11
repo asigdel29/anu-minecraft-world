@@ -32,7 +32,7 @@ os.makedirs(OUT, exist_ok=True)
 BAKE_SAMPLES = 32
 TERRAIN_ATLAS = 2048
 HOUSE_ATLAS = 2048
-PROP_PREFIXES = ("tree", "orchard_tree", "rock")
+PROP_PREFIXES = ("tree", "orchard_tree", "rock", "llama")
 
 scene = bpy.context.scene
 
@@ -304,9 +304,14 @@ if ref:
     for o in list(ref.objects):
         bpy.data.objects.remove(o, do_unlink=True)
 
-house = build_house()
-build_terrain()
-hide_for_export(house)
-build_props()
-build_water()
+# Second CLI arg "props" exports only the (unbaked) prop clusters — used
+# when dressing changes without touching the baked terrain or house.
+if len(argv) > 1 and argv[1] == "props":
+    build_props()
+else:
+    house = build_house()
+    build_terrain()
+    hide_for_export(house)
+    build_props()
+    build_water()
 log("DONE")
