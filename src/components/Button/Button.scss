@@ -5,6 +5,7 @@
   box-shadow: inset 2px 2px #ffffffc0, inset -2px -2px #323232c0;
   background-color: styles.$color-base-gray;
   border: 2px solid styles.$color-base-dark-gray-four;
+  border-radius: 10px;
   display: flex;
   place-content: center;
   justify-content: center;
@@ -20,6 +21,6 @@
     border: 2px solid white;
     background-color: styles.$color-base-green;
     cursor: pointer;
-    box-shadow: inset 2px 2px #53d95ac0, inset -2px -2px #118316c0;
+    box-shadow: inset 2px 2px #a98cffc0, inset -2px -2px #5636c9c0;
   }
 }
