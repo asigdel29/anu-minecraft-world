@@ -15,13 +15,22 @@ export const convertMaterialsToMeshBasicMaterial = (
     // re-wrapped forever — heavy per-frame churn).
     if (material.userData.__basicConverted) return;
 
-    const converted = material.emissiveMap
-      ? new MeshBasicMaterial({ map: material.emissiveMap })
-      : new MeshBasicMaterial({
-          map: material.map,
-          transparent: true,
-          alphaTest: alphaTestValue,
-        });
+    // Three conversions, by how the asset was authored: baked lighting rides
+    // in the emissive slot (terrain, house); foliage cutouts ride the base
+    // color texture with alpha; untextured stylized props carry only a flat
+    // base color, which maps to a plain color-only unlit material.
+    let converted;
+    if (material.emissiveMap) {
+      converted = new MeshBasicMaterial({ map: material.emissiveMap });
+    } else if (material.map) {
+      converted = new MeshBasicMaterial({
+        map: material.map,
+        transparent: true,
+        alphaTest: alphaTestValue,
+      });
+    } else {
+      converted = new MeshBasicMaterial({ color: material.color });
+    }
     converted.userData.__basicConverted = true;
     materials[materialKey] = converted;
   });

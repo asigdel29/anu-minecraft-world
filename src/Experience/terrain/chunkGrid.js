@@ -58,6 +58,20 @@ export const worldToChunk = (x, z, chunkSize) => [
 export const chunkDistance = (cxA, czA, cxB, czB) =>
   Math.max(Math.abs(cxA - cxB), Math.abs(czA - czB));
 
+/**
+ * Chebyshev distance from a cell to a chunk's cell range. A chunk occupies
+ * the cells [cx .. cx+spanX-1] x [cz .. cz+spanZ-1] (spans default to 1);
+ * the distance is zero anywhere inside the range, so a wide chunk stays
+ * loaded while the player stands anywhere on it.
+ */
+export const chunkRangeDistance = (pcx, pcz, chunk) => {
+  const spanX = chunk.spanX ?? 1;
+  const spanZ = chunk.spanZ ?? 1;
+  const dx = Math.max(chunk.cx - pcx, pcx - (chunk.cx + spanX - 1), 0);
+  const dz = Math.max(chunk.cz - pcz, pcz - (chunk.cz + spanZ - 1), 0);
+  return Math.max(dx, dz);
+};
+
 const sameIds = (a, b) =>
   a.length === b.length && a.every((id, index) => id === b[index]);
 
@@ -95,7 +109,7 @@ export const selectChunks = (x, z, chunks, chunkSize, prev, radii) => {
   const colliders = [];
   const prefetch = [];
   for (const chunk of chunks) {
-    const distance = chunkDistance(pcx, pcz, chunk.cx, chunk.cz);
+    const distance = chunkRangeDistance(pcx, pcz, chunk);
     const isActive =
       chunk.spawnEager ||
       distance <= radii.loadRadius ||
@@ -133,9 +147,9 @@ export const deriveExtents = (chunks, chunkSize) => {
   let maxCz = -Infinity;
   for (const chunk of chunks) {
     minCx = Math.min(minCx, chunk.cx);
-    maxCx = Math.max(maxCx, chunk.cx);
+    maxCx = Math.max(maxCx, chunk.cx + (chunk.spanX ?? 1) - 1);
     minCz = Math.min(minCz, chunk.cz);
-    maxCz = Math.max(maxCz, chunk.cz);
+    maxCz = Math.max(maxCz, chunk.cz + (chunk.spanZ ?? 1) - 1);
   }
   return {
     minX: minCx * chunkSize,

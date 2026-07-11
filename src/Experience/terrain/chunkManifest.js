@@ -3,56 +3,61 @@
 // player derives its soft bounds from, so terrain and bounds cannot drift
 // apart as the island grows.
 //
-// Interim state: the entries below are the three original lawn GLBs, which
-// were authored as one lawn split by direction rather than on a grid. Their
-// footprints span several cells each, so they are pinned `spawnEager` (they
-// are visible through the house windows and must be in the SceneSky capture)
-// and `alwaysCollide` (distance-gated colliders assume a chunk fits its
-// cell). Island chunks exported on the CHUNK_SIZE grid replace them with
-// plain `{ id, url, cx, cz }` entries and get streaming for free.
+// The island (assets/island.blend, exported by assets/pipeline/bake_export.py)
+// spans world x/z -160..160 = cells -5..4 at CHUNK_SIZE 32. Terrain ships as
+// four baked quadrants, each spanning 5x5 cells (spanX/spanZ) and carrying a
+// decimated collision proxy under a "colliders" subtree. The quadrants are
+// spawn-eager (all four are visible through the house windows, so the
+// SceneSky capture needs them) and always-collide (four cheap proxies).
+// Prop clusters are plain streamed chunks: decorative, colliderless, faded
+// in and out by distance like any grid chunk.
 
-import BackGrass from "../models/BackGrassT";
-import FrontGrass from "../models/FrontGrassT";
-import GrassSides from "../models/GrassSidesT";
+import { deriveExtents } from "./chunkGrid";
 
 // World units per square chunk cell. Matches the export grid the island
-// terrain is cut on in Blender; see docs/ASSETS.md.
+// terrain is cut on; see docs/ASSETS.md.
 export const CHUNK_SIZE = 32;
 
+const MODELS = "/models/island";
+
 export const CHUNKS = [
+  ...["wn", "en", "ws", "es"].map((key) => ({
+    id: `island_${key}`,
+    url: `${MODELS}/IslandQ_${key}-transformed.glb`,
+    cx: key[0] === "w" ? -5 : 0,
+    cz: key[1] === "n" ? -5 : 0,
+    spanX: 5,
+    spanZ: 5,
+    spawnEager: true,
+    alwaysCollide: true,
+  })),
   {
-    id: "lawn_back",
-    Component: BackGrass,
-    cx: -1,
-    cz: -2,
+    id: "water",
+    url: `${MODELS}/Water-transformed.glb`,
+    cx: -5,
+    cz: -5,
+    spanX: 10,
+    spanZ: 10,
     spawnEager: true,
     alwaysCollide: true,
   },
-  {
-    id: "lawn_front",
-    Component: FrontGrass,
-    cx: 0,
-    cz: 0,
-    spawnEager: true,
-    alwaysCollide: true,
-  },
-  {
-    id: "lawn_sides",
-    Component: GrassSides,
-    cx: -1,
-    cz: 0,
-    spawnEager: true,
-    alwaysCollide: true,
-  },
+  ...["wn", "en", "ws", "es"].map((key) => ({
+    id: `props_${key}`,
+    url: `${MODELS}/PropsQ_${key}-transformed.glb`,
+    cx: key[0] === "w" ? -5 : 0,
+    cz: key[1] === "n" ? -5 : 0,
+    spanX: 5,
+    spanZ: 5,
+  })),
 ];
 
 export const CHUNKS_BY_ID = Object.fromEntries(
   CHUNKS.map((chunk) => [chunk.id, chunk])
 );
 
-// Soft world boundary for the player, kept explicit while the interim lawn
-// chunks span cells they are not registered on. Once the island manifest
-// lands (chunks cut on the grid), replace this with
-// `deriveExtents(CHUNKS, CHUNK_SIZE)` from chunkGrid.js. The values are the
-// original hand-tuned lawn bounds.
-export const WORLD_EXTENTS = { minX: -45, maxX: 45, minZ: -50, maxZ: 55 };
+// Soft world boundary for the player: the outer edges of the island cells
+// (the water chunk is excluded so the bounds hug the terrain, not the sea).
+export const WORLD_EXTENTS = deriveExtents(
+  CHUNKS.filter((chunk) => chunk.id !== "water"),
+  CHUNK_SIZE
+);
