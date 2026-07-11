@@ -24,8 +24,14 @@ function GlbContent({ url }) {
   return <primitive object={scene} dispose={null} />;
 }
 
-export default function Chunk({ chunk, colliderRegistry, withColliders }) {
+export default function Chunk({ chunk, colliderRegistry, withColliders, onReady }) {
   const group = useRef();
+
+  // Report the first successful mount (content loaded and committed) so the
+  // manager can tell when the spawn-eager set is fully in the graph.
+  useEffect(() => {
+    if (onReady) onReady(chunk.id);
+  }, [onReady, chunk.id]);
 
   // Runs after the chunk's content has loaded and committed (the Suspense
   // boundary sits above this component), so the named subtree is findable.

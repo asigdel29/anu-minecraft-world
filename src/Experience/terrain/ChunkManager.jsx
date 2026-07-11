@@ -1,10 +1,11 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { useFrame } from "@react-three/fiber";
 
 import Chunk from "./Chunk";
 import { DEFAULT_RADII, initialSelection, selectChunks } from "./chunkGrid";
 import { CHUNKS, CHUNKS_BY_ID, CHUNK_SIZE } from "./chunkManifest";
+import { useChunkStore } from "./chunkStore";
 import { useNavStore } from "../stores/navStore";
 import { usePreloadGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 
@@ -24,11 +25,30 @@ import { usePreloadGLTFWithKTX2 } from "../utils/useGLTFWithKTX2";
 // cell in ~4.5 s; a quarter-second check never lets terrain fall behind.
 const SELECT_INTERVAL_SEC = 0.25;
 
+const EAGER_IDS = CHUNKS.filter((c) => c.spawnEager).map((c) => c.id);
+
 export default function ChunkManager({ colliderRegistry, playerPositionRef }) {
   const enteredWorld = useNavStore((state) => state.enteredWorld);
   const [selection, setSelection] = useState(() => initialSelection(CHUNKS));
   const selectionRef = useRef(selection);
   const accumulator = useRef(0);
+
+  // Flip the shared eagerReady flag once every spawn-eager chunk has mounted;
+  // SceneSky waits on this before its one-time background capture. Chunks
+  // report every mount, but only the first sighting of each eager id counts.
+  const setEagerReady = useChunkStore((state) => state.setEagerReady);
+  const readyEagerIds = useRef(new Set());
+  const handleChunkReady = useCallback(
+    (id) => {
+      if (!CHUNKS_BY_ID[id].spawnEager) return;
+      readyEagerIds.current.add(id);
+      if (readyEagerIds.current.size === EAGER_IDS.length) setEagerReady();
+    },
+    [setEagerReady]
+  );
+  useEffect(() => {
+    if (EAGER_IDS.length === 0) setEagerReady();
+  }, [setEagerReady]);
 
   useFrame((state, delta) => {
     if (!enteredWorld) return;
@@ -71,6 +91,7 @@ export default function ChunkManager({ colliderRegistry, playerPositionRef }) {
         chunk={CHUNKS_BY_ID[id]}
         colliderRegistry={colliderRegistry}
         withColliders={colliderIds.has(id)}
+        onReady={handleChunkReady}
       />
     </Suspense>
   ));
