@@ -23,6 +23,31 @@ export const DEFAULT_RADII = {
   prefetchRadius: 3,
 };
 
+// Tighter ring for touch devices, where fill rate and GPU memory are the
+// ceiling. One chunk of view is still ~32 units past the player's cell —
+// comfortably beyond the fog's full-opacity distance on mobile tuning.
+export const MOBILE_RADII = {
+  loadRadius: 1,
+  unloadRadius: 2,
+  colliderRadius: 1,
+  prefetchRadius: 2,
+};
+
+/** The streaming radii to use for a device; `coarse` per isCoarsePointer(). */
+export const radiiForDevice = (coarse) =>
+  coarse ? MOBILE_RADII : DEFAULT_RADII;
+
+/**
+ * Distance-culling hysteresis for decorative prop groups: a hidden group
+ * shows when the player comes within `showRadius`, a visible one hides only
+ * past `hideRadius` (> showRadius), so pacing on the threshold never makes
+ * props flicker. Distances squared, so callers never need a sqrt.
+ */
+export const shouldBeVisible = (distSq, wasVisible, showRadius, hideRadius) =>
+  wasVisible
+    ? distSq <= hideRadius * hideRadius
+    : distSq <= showRadius * showRadius;
+
 /** Cell coordinates [cx, cz] containing world position (x, z). */
 export const worldToChunk = (x, z, chunkSize) => [
   Math.floor(x / chunkSize),

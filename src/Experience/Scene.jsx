@@ -64,6 +64,15 @@ const Scene = () => {
 
   return (
     <>
+      {/* Distance haze. The converted MeshBasicMaterials fog by default (fog
+          is a material flag, unrelated to the Canvas's flat tone mapping), so
+          far terrain fades toward the horizon color before it pops in or out
+          of the streamed set. The sky background is NOT fogged by three, so
+          the color must sit on the cubemap's horizon band; revisit both
+          together when the sky art changes. Near/far are tuned to sit at the
+          world's far corners today and to cover the streaming radii as the
+          island grows. */}
+      <fog attach="fog" args={["#a9c9ff", 70, 160]} />
       <Environment
         background={true}
         backgroundRotation={[0, Math.PI / 2, 0]}
