@@ -1,0 +1,22 @@
+{
+  "name": "park-pipeline",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "LOR-2423 park GLB pipeline — procedural Node/three.js authoring + gltf-transform compression (approved fallback for the Blender-authored contract; see docs/park/park-assets.md).",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gltf-transform/cli": "^4.1.0",
+    "@gltf-transform/core": "^4.1.0",
+    "@gltf-transform/extensions": "^4.1.0",
+    "@gltf-transform/functions": "^4.1.0",
+    "draco3dgltf": "^1.5.7",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}
