@@ -3,7 +3,8 @@ import { Suspense, useCallback, useRef } from "react";
 import { Environment } from "@react-three/drei";
 
 import House from "./models/HouseT";
-import SceneSky from "./SceneSky";
+import AttractionMarker from "./park/AttractionMarker";
+import { ATTRACTIONS } from "./park/attractions";
 import BackGrass from "./models/BackGrassT";
 import Detail from "./models/DetailT";
 import FrontGrass from "./models/FrontGrassT";
@@ -22,8 +23,15 @@ import { useMultiplayer } from "./stores/useMultiplayer";
 // camera that scrolling slid along a spline; that path (and its rotation
 // keyframes and per-view dolly) is gone. The camera is now driven by the
 // character controller in Player.jsx, so Scene just composes the world.
+
+// Night palette (LOR-2423): sky and fog share one colour so far terrain fades
+// seamlessly into the sky — the two are revised together (recon risk #5).
+// Near/far suit the current ~90-unit lawn; retune with the park island.
+const NIGHT_SKY = "#0d1330";
+const NIGHT_FOG_NEAR = 26;
+const NIGHT_FOG_FAR = 92;
+
 const Scene = () => {
-  const houseRef = useRef();
 
   // Multiplayer presence — opens the relay socket and returns the throttled
   // state broadcaster the Player feeds. Runs solo when no host is configured.
@@ -43,8 +51,10 @@ const Scene = () => {
   return (
     <>
       <Environment
-        background={true}
-        backgroundRotation={[0, Math.PI / 2, 0]}
+        // Lighting only: the flat night colour below owns the background. The
+        // cubemap's day faces stay as image-based lighting until the night
+        // cubemap lands, at which point `background` can flip back on.
+        background={false}
         files={[
           "/cubemap/px.webp",
           "/cubemap/nx.webp",
@@ -54,27 +64,25 @@ const Scene = () => {
           "/cubemap/nz.webp",
         ]}
       />
-      {/* The ten GLBs total ~54 MB. A single Suspense made the whole scene wait
-          for the slowest one; separate boundaries let each model appear as its
-          own file arrives, so the house and its interior show long before the
-          outdoor scenery finishes streaming. The sky capture still waits for the
-          full load (it is gated on useProgress in SceneSky), so the world behind
-          the windows is unaffected. House + sky stay paired so the capture sees
-          the shell it hides for that one frame. */}
+      {/* Night theme (LOR-2423): a flat night sky and fog that fades terrain
+          into the same colour before the world edge. The two read as one
+          decision — see the palette note above. */}
+      <color attach="background" args={[NIGHT_SKY]} />
+      <fog attach="fog" args={[NIGHT_SKY, NIGHT_FOG_NEAR, NIGHT_FOG_FAR]} />
+      {/* A single Suspense made the whole scene wait for the slowest GLB;
+          separate boundaries let each model appear as its own file arrives, so
+          the house and its interior show long before the outdoor scenery
+          streams in. SceneSky used to ride with the house here, baking the day
+          panorama into the windows — dropped with the night theme (a day sky
+          fights it); a night cubemap restores the background when the assets
+          task lands. */}
       <Suspense fallback={null}>
-        {/* Detail (the framed content panels) lives inside the houseRef group so
-            it is hidden alongside the house during the one-frame SceneSky
-            capture — otherwise the far top-floor panels get baked into the
-            background sky. */}
-        <group ref={houseRef}>
-          <group ref={registerCollider}>
-            <House />
-          </group>
-          <Detail />
-          <Terminal3D />
-          <AmbientLife />
+        <group ref={registerCollider}>
+          <House />
         </group>
-        <SceneSky houseRef={houseRef} />
+        <Detail />
+        <Terminal3D />
+        <AmbientLife />
       </Suspense>
       <Suspense fallback={null}>
         <GateSign />
@@ -107,6 +115,16 @@ const Scene = () => {
       <Suspense fallback={null}>
         <Mobs />
       </Suspense>
+      {/* Attraction markers: placeholder low-poly props at the manifest
+          positions, registered for walk-up interaction (E) with click/tap as
+          the pointer path. Selecting one starts the balloon-cam flight. */}
+      {ATTRACTIONS.map((attraction) => (
+        <AttractionMarker
+          key={attraction.id}
+          attraction={attraction}
+          colliders={colliders}
+        />
+      ))}
       {/* The controllable character. It owns the camera each frame and raycasts
           against the registered colliders to follow the ground. */}
       <Suspense fallback={null}>
