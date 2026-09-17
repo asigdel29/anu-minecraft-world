@@ -26,6 +26,14 @@ const NEON = {
   fortune: "#ffe14d",
 };
 
+// Touch hit target. The visible disc is art; an invisible, larger base disc
+// (HIT_RADIUS 4.5) plus a full-height invisible cylinder carry the taps, so
+// the marker stays a ≥44px target (MIN_TAP_PX, see tapTarget.js) out to ~62
+// units on a 375px-tall phone viewport at the camera's 70° fov — the walk-up
+// and flight-viewpoint range. Farther taps still enter (raycasts are
+// world-space); the guarantee covers the designed interaction range.
+const HIT_RADIUS = 4.5;
+
 // A small distinct topper per ride type so the seven read apart at a glance.
 const topperFor = (ride, color) => {
   switch (ride) {
@@ -108,8 +116,16 @@ export default function AttractionMarker({ attraction, colliders }) {
   return (
     <group ref={group} position={[x, attraction.position[1], z]}>
       <DistanceGroup>
+        {/* One tap path for the whole marker: a single handler on the group,
+            with stopPropagation so nested meshes never double-fire. Invisible
+            hit geometry (base disc + full-height pill) gives touch a ≥44px
+            target across the designed interaction range; the label sits
+            inside the group so tapping it enters too. */}
         <group
-          onClick={() => useParkNav.getState().enter(attraction.id)}
+          onClick={(event) => {
+            event.stopPropagation();
+            useParkNav.getState().enter(attraction.id);
+          }}
           onPointerOver={() => {
             document.body.style.cursor = "pointer";
           }}
@@ -127,20 +143,28 @@ export default function AttractionMarker({ attraction, colliders }) {
             />
           </mesh>
           {topperFor(attraction.ride, color)}
+          <mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[HIT_RADIUS, 16]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+          <mesh position={[0, 3, 0]}>
+            <cylinderGeometry args={[HIT_RADIUS * 0.7, HIT_RADIUS * 0.7, 6, 8]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+          <Text
+            ref={label}
+            font={FONT}
+            position={[0, 4.2, 0]}
+            fontSize={0.55}
+            color={color}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="#0a0a14"
+          >
+            {attraction.name}
+          </Text>
         </group>
-        <Text
-          ref={label}
-          font={FONT}
-          position={[0, 4.2, 0]}
-          fontSize={0.55}
-          color={color}
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.02}
-          outlineColor="#0a0a14"
-        >
-          {attraction.name}
-        </Text>
       </DistanceGroup>
     </group>
   );
