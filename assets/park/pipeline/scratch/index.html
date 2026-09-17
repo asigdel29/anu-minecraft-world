@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>park GLB render check (LOR-2423)</title>
+    <style>
+      body { margin: 0; background: #0b0e1a; overflow: hidden; }
+      #status {
+        position: fixed; top: 8px; left: 8px; z-index: 10;
+        font: 13px/1.5 monospace; color: #cdd6f4;
+        background: rgba(10, 12, 24, 0.8); padding: 8px 12px;
+        border-radius: 6px; white-space: pre;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="status">loading…</div>
+    <script type="module">
+      import * as THREE from "three";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+
+      const KEYS = [
+        "ground", "agent-arcade", "factory", "idea-graveyard",
+        "library", "hardware", "launch-tower", "fortune",
+      ];
+
+      const statusEl = document.getElementById("status");
+      const results = [];
+      function renderStatus() {
+        statusEl.textContent = results.map(
+          (r) => `${r.ok ? "✅" : "❌"} ${r.key} ${r.note}`
+        ).join("\n");
+        window.parkResults = results;
+      }
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(innerWidth, innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b0e1a);
+      const camera = new THREE.PerspectiveCamera(
+        50, innerWidth / innerHeight, 0.1, 600
+      );
+      camera.position.set(38, 42, 78);
+      camera.lookAt(0, 6, 0);
+
+      const draco = new DRACOLoader();
+      draco.setDecoderPath(
+        "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/"
+      );
+      const loader = new GLTFLoader();
+      loader.setDRACOLoader(draco);
+
+      await Promise.all(
+        KEYS.map(
+          (key) =>
+            new Promise((resolve) => {
+              loader.load(
+                `../../${key}-transformed.glb`,
+                (gltf) => {
+                  scene.add(gltf.scene);
+                  results.push({ key, ok: true, note: "" });
+                  renderStatus();
+                  resolve();
+                },
+                undefined,
+                (err) => {
+                  results.push({
+                    key, ok: false, note: String(err?.message ?? err).slice(0, 60),
+                  });
+                  renderStatus();
+                  resolve();
+                }
+              );
+            })
+        )
+      );
+
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+      animate();
+      statusEl.dataset.state = "done";
+    </script>
+  </body>
+</html>
