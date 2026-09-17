@@ -4,6 +4,7 @@ import { Environment } from "@react-three/drei";
 
 import House from "./models/HouseT";
 import AttractionMarker from "./park/AttractionMarker";
+import ParkCameraRig from "./park/ParkCameraRig";
 import { ATTRACTIONS } from "./park/attractions";
 import BackGrass from "./models/BackGrassT";
 import Detail from "./models/DetailT";
@@ -125,6 +126,9 @@ const Scene = () => {
           colliders={colliders}
         />
       ))}
+      {/* The balloon-cam rig: flies the camera to a selected marker while
+          flying/page and eases back onto the walk-camera pose on exit. */}
+      <ParkCameraRig colliders={colliders} />
       {/* The controllable character. It owns the camera each frame and raycasts
           against the registered colliders to follow the ground. */}
       <Suspense fallback={null}>
