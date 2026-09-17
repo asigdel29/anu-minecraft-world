@@ -1,0 +1,4 @@
+node_modules/
+build/
+# Vendored local pipeline — reproducible from package.json alone
+package-lock.json
