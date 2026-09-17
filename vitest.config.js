@@ -6,6 +6,11 @@ import { defineConfig } from "vitest/config";
 // control helpers touch; globals are imported explicitly per test file so the
 // existing browser-scoped ESLint config needs no test-only override.
 export default defineConfig({
+  esbuild: {
+    // Components use the automatic JSX runtime (@vitejs/plugin-react does this
+    // for the app); tests transforming JSX need the same runtime.
+    jsx: "automatic",
+  },
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{js,jsx}"],
