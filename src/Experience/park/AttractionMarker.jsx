@@ -28,7 +28,7 @@ const NEON = {
 
 // Touch hit target. The visible disc is art; an invisible, larger base disc
 // (HIT_RADIUS 4.5) plus a full-height invisible cylinder carry the taps, so
-// the marker stays a ≥44px target (MIN_TAP_PX, see tapTarget.js) out to ~62
+// the marker stays a ≥44px target (MIN_TAP_PX, see tapTarget.js) out to ~60
 // units on a 375px-tall phone viewport at the camera's 70° fov — the walk-up
 // and flight-viewpoint range. Farther taps still enter (raycasts are
 // world-space); the guarantee covers the designed interaction range.

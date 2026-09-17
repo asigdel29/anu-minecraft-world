@@ -1,10 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import {
-  MIN_TAP_PX,
-  tapTargetPx,
-  maxDistanceForTapPx,
-} from "./tapTarget";
+import { MIN_TAP_PX, tapTargetPx } from "./tapTarget";
 
 // The marker hit disc (HIT_RADIUS 4.5 in AttractionMarker.jsx) must stay a
 // ≥44px touch target across the designed interaction range: walking up to a
@@ -52,47 +48,17 @@ describe("tapTargetPx", () => {
       tapTargetPx({ radius: 4.5, distance: 10, fov: FOV, viewportPx: 0 })
     ).toBe(0);
   });
-});
 
-describe("maxDistanceForTapPx", () => {
-  it("inverts tapTargetPx", () => {
-    const distance = 37;
-    expect(
-      maxDistanceForTapPx({
-        radius: HIT_RADIUS,
-        fov: FOV,
-        viewportPx: PHONE_PORTRAIT_PX,
-        minPx: tapTargetPx({
-          radius: HIT_RADIUS,
-          distance,
-          fov: FOV,
-          viewportPx: PHONE_PORTRAIT_PX,
-        }),
-      })
-    ).toBeCloseTo(distance, 5);
-  });
-
-  it("keeps the shipped hit disc a ≥44px target at walk-up range", () => {
-    // On a 375px-tall phone viewport the 4.5-unit disc must still project to
-    // MIN_TAP_PX well past the INTERACT_RANGE (3.2) walk-up distance and the
-    // ~12-unit balloon-cam viewpoint.
-    const reach = maxDistanceForTapPx({
+  it("keeps the shipped hit disc a ≥44px target at the park's tap range", () => {
+    // At 60 world units — walk-up plus flight-viewpoint range, well past the
+    // 3.2-unit E-interact radius — the 4.5-unit disc must still project to
+    // MIN_TAP_PX on a small phone viewport.
+    const px = tapTargetPx({
       radius: HIT_RADIUS,
+      distance: 60,
       fov: FOV,
       viewportPx: PHONE_PORTRAIT_PX,
-      minPx: MIN_TAP_PX,
     });
-    expect(reach).toBeGreaterThan(48);
-  });
-
-  it("returns zero when the minimum cannot fit the viewport", () => {
-    expect(
-      maxDistanceForTapPx({
-        radius: HIT_RADIUS,
-        fov: FOV,
-        viewportPx: PHONE_PORTRAIT_PX,
-        minPx: PHONE_PORTRAIT_PX,
-      })
-    ).toBe(0);
+    expect(px).toBeGreaterThanOrEqual(MIN_TAP_PX);
   });
 });

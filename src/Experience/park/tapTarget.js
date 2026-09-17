@@ -27,24 +27,3 @@ export const tapTargetPx = ({ radius, distance, fov, viewportPx }) => {
   const fovRad = (fov * Math.PI) / 180;
   return (angularSize / fovRad) * viewportPx;
 };
-
-/**
- * The farthest distance (world units) at which a disc of `radius` units still
- * projects to at least `minPx` on a `viewportPx`-tall, vertical-`fov` camera.
- * Inverse of the projection above; the marker test uses this to assert the
- * hit disc covers the park's realistic interaction distances.
- */
-export const maxDistanceForTapPx = ({ radius, fov, viewportPx, minPx }) => {
-  if (
-    !(radius > 0) ||
-    !(fov > 0) ||
-    !(viewportPx > 0) ||
-    !(minPx > 0) ||
-    minPx >= viewportPx
-  ) {
-    return 0;
-  }
-  const fovRad = (fov * Math.PI) / 180;
-  const angularSize = (minPx / viewportPx) * fovRad;
-  return radius / Math.tan(angularSize / 2);
-};
