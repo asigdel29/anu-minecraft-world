@@ -30,5 +30,12 @@ export const useParkNav = create((set) => ({
   attractionId: null,
   enter: (id) => set({ mode: "flying", attractionId: id }),
   arrived: () => set({ mode: "page" }),
-  exit: () => set({ mode: "park", attractionId: null }),
+  // Leaving the balloon-cam arms the rig's ease-back: it glides the camera
+  // onto the walk-mode orbit pose before handing control back (the rig clears
+  // the flag when the pose is reached). Without this the orbit rig would snap
+  // the camera on the first park-mode frame — a hard cut.
+  exit: () => {
+    parkCameraState.returning = true;
+    set({ mode: "park", attractionId: null });
+  },
 }));
