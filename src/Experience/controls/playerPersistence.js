@@ -4,7 +4,11 @@
 // so corrupt or hand-edited storage can never crash the spawn, and so it can be
 // unit-tested without a DOM.
 
-export const STORAGE_KEY = "mc-player-state";
+// v3 (LOR-2423): the night-park revision reshapes the walkable world, so
+// pre-park saves under the old "mc-player-state" key are deliberately not
+// migrated — a returning visitor respawns at spawn rather than inside
+// possibly-invalid geometry. The old key is left untouched in storage.
+export const STORAGE_KEY = "mc-player-state-v3";
 
 // Seconds between throttled saves while moving — frequent enough to feel
 // continuous, rare enough to be cheap.
