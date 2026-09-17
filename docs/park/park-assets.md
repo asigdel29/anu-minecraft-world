@@ -1,10 +1,12 @@
 # Park assets (LOR-2423)
 
-The night-carnival park world geometry lives in this directory as eight
-compressed GLBs: one per attraction (7) plus shared ground/props. They are
-loaded by the runtime the same way island chunks are (`*-transformed.glb`,
-Draco, `colliders` subtrees, world-coordinate geometry with identity node
-transforms).
+The night-carnival park world geometry is eight compressed GLBs — one per
+attraction (7) plus shared ground/props — living in `public/models/park/` and
+served at `/models/park/`; the generating pipeline stays under
+`assets/park/pipeline/`. The runtime mounts them in
+`src/Experience/park/ParkModels.jsx` the same way island chunks are loaded
+(`*-transformed.glb`, Draco, `colliders` subtrees, world-coordinate geometry
+with identity node transforms).
 
 ## Provenance: procedural fallback (approved deviation)
 
@@ -69,7 +71,7 @@ Rebuild:
 cd assets/park/pipeline
 npm install
 node build.mjs        # raw GLBs → pipeline/build/
-./compress-park.sh    # Draco → ../<key>-transformed.glb
+./compress-park.sh    # Draco → public/models/park/<key>-transformed.glb
 ```
 
 Verify (also runs in CI):
@@ -81,8 +83,8 @@ npx vitest run src/assets/park/parkAssets.test.js
 Manual render check (not wired into the app):
 
 ```bash
-cd assets/park && python3 -m http.server 8123
-# open http://localhost:8123/pipeline/scratch/
+cd <repo root> && python3 -m http.server 8123
+# open http://localhost:8123/assets/park/pipeline/scratch/
 ```
 
 ## Size budgets (measured, replaces the stale 54 MB island claim)

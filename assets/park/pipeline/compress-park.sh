@@ -6,7 +6,9 @@
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
 RAW="$HERE/build/raw"
-OUT="$(cd "$HERE/.." && pwd)"
+# Output lands straight in the served model tree — the runtime fetches these
+# files by URL, so the pipeline writes where public/ serves from.
+OUT="$(cd "$HERE/../../.." && pwd)/public/models/park"
 mkdir -p "$OUT"
 for f in "$RAW"/*.glb; do
   base="$(basename "$f" .glb)"

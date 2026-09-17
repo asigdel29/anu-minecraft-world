@@ -66,7 +66,7 @@
           (key) =>
             new Promise((resolve) => {
               loader.load(
-                `../../${key}-transformed.glb`,
+                `../../../public/models/park/${key}-transformed.glb`,
                 (gltf) => {
                   scene.add(gltf.scene);
                   results.push({ key, ok: true, note: "" });

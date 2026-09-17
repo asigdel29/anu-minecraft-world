@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Text, Billboard } from "@react-three/drei";
 
 import PlayerModel from "./models/PlayerT";
+import { PARK_SPAWN } from "./park/attractions";
 import { useKeyboard } from "./controls/useKeyboard";
 import { useThirdPersonCamera } from "./controls/useThirdPersonCamera";
 import { useTourCamera } from "./controls/useTourCamera";
@@ -42,7 +43,9 @@ import { parkPlayerState, useParkNav } from "./park/parkStore";
 // taken relative to where the orbit camera looks, so "forward" always reads as
 // "away from the camera" regardless of orbit angle. Horizontal wall collision
 // arrives in a later change.
-const SPAWN = new THREE.Vector3(0, 64.85, 20);
+// Spawn x/z come from the park manifest so the GLB load order and the player
+// start cannot drift apart; the y is the lawn height at that point.
+const SPAWN = new THREE.Vector3(PARK_SPAWN[0], 64.85, PARK_SPAWN[1]);
 const WALK_SPEED = 4.2; // world units per second
 const RUN_SPEED = 7.0;
 const TURN_RATE = 12; // how quickly the body swings to face travel direction

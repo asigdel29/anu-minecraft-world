@@ -14,6 +14,12 @@
 // from it, the same way terrain derives WORLD_EXTENTS from its chunk manifest.
 export const PARK_BOUNDS = { minX: -45, maxX: 45, minZ: -50, maxZ: 55 };
 
+// The visitor spawn point on the lawn, [x, z] — the y is terrain height and
+// stays in Player.jsx, which drops the character on mount. Declared here so
+// the GLB load order (see attractionsByProximity) and the player start cannot
+// drift apart.
+export const PARK_SPAWN = [0, 20];
+
 // The seven attractions (LOR-2423 spec). `position` is [x, ground, z]; the y
 // entry is a manifest placeholder (0) — markers drop to the terrain height at
 // mount, so the scene stays correct when the ground under an attraction moves.
@@ -85,6 +91,25 @@ export const ATTRACTIONS_BY_ROUTE = Object.fromEntries(
 );
 
 export const getAttraction = (id) => ATTRACTIONS_BY_ID[id] || null;
+
+/**
+ * Manifest copy sorted nearest-first to an `[x, z]` origin. Stable on the
+ * declared order for ties (and never mutates the manifest). The ride-GLB
+ * mount order uses this so a visitor's first paint shows the rides around
+ * the spawn point before the far side of the park.
+ */
+export const attractionsByProximity = (origin, manifest = ATTRACTIONS) =>
+  manifest
+    .map((attraction, index) => ({
+      attraction,
+      index,
+      distance: Math.hypot(
+        attraction.position[0] - origin[0],
+        attraction.position[2] - origin[1]
+      ),
+    }))
+    .sort((a, b) => a.distance - b.distance || a.index - b.index)
+    .map((entry) => entry.attraction);
 
 /**
  * Whether a `[x, y, z]` position sits inside the walkable bounds, inclusive.
