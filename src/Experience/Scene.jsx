@@ -5,7 +5,13 @@ import { Environment } from "@react-three/drei";
 import House from "./models/HouseT";
 import AttractionMarker from "./park/AttractionMarker";
 import ParkCameraRig from "./park/ParkCameraRig";
-import { ATTRACTIONS } from "./park/attractions";
+import { ParkGround, ParkRide } from "./park/ParkModels";
+import { PARK_ATMOSPHERE } from "./park/parkAtmosphere";
+import {
+  ATTRACTIONS,
+  PARK_SPAWN,
+  attractionsByProximity,
+} from "./park/attractions";
 import BackGrass from "./models/BackGrassT";
 import Detail from "./models/DetailT";
 import FrontGrass from "./models/FrontGrassT";
@@ -26,11 +32,10 @@ import { useMultiplayer } from "./stores/useMultiplayer";
 // character controller in Player.jsx, so Scene just composes the world.
 
 // Night palette (LOR-2423): sky and fog share one colour so far terrain fades
-// seamlessly into the sky — the two are revised together (recon risk #5).
-// Near/far suit the current ~90-unit lawn; retune with the park island.
+// seamlessly into the sky — the two are revised together (recon risk #5). The
+// fog range is no longer hand-tuned: PARK_ATMOSPHERE derives it from the park
+// manifest bounds (see parkAtmosphere.js).
 const NIGHT_SKY = "#0d1330";
-const NIGHT_FOG_NEAR = 26;
-const NIGHT_FOG_FAR = 92;
 
 const Scene = () => {
 
@@ -69,7 +74,15 @@ const Scene = () => {
           into the same colour before the world edge. The two read as one
           decision — see the palette note above. */}
       <color attach="background" args={[NIGHT_SKY]} />
-      <fog attach="fog" args={[NIGHT_SKY, NIGHT_FOG_NEAR, NIGHT_FOG_FAR]} />
+      <fog
+        attach="fog"
+        args={[NIGHT_SKY, PARK_ATMOSPHERE.fogNear, PARK_ATMOSPHERE.fogFar]}
+      />
+      {/* The park lawn is the first paint: the ground GLB (with its colliders)
+          mounts in its own boundary ahead of everything else, so the earliest
+          render shows walkable ground with the nearest ride clusters filling
+          in from attractionsByProximity(PARK_SPAWN) order. */}
+      <ParkGround registerCollider={registerCollider} />
       {/* A single Suspense made the whole scene wait for the slowest GLB;
           separate boundaries let each model appear as its own file arrives, so
           the house and its interior show long before the outdoor scenery
@@ -116,14 +129,24 @@ const Scene = () => {
       <Suspense fallback={null}>
         <Mobs />
       </Suspense>
-      {/* Attraction markers: placeholder low-poly props at the manifest
+      {/* Attraction markers: interaction discs + labels at the manifest
           positions, registered for walk-up interaction (E) with click/tap as
-          the pointer path. Selecting one starts the balloon-cam flight. */}
+          the pointer path. Selecting one starts the balloon-cam flight. The
+          ride geometry itself mounts as the real park GLBs beside them. */}
       {ATTRACTIONS.map((attraction) => (
         <AttractionMarker
           key={attraction.id}
           attraction={attraction}
           colliders={colliders}
+        />
+      ))}
+      {/* Real park ride geometry: one GLB per attraction, mounted nearest the
+          spawn point first, culled as clusters at the derived park radii. */}
+      {attractionsByProximity(PARK_SPAWN).map((attraction) => (
+        <ParkRide
+          key={attraction.id}
+          attraction={attraction}
+          registerCollider={registerCollider}
         />
       ))}
       {/* The balloon-cam rig: flies the camera to a selected marker while
