@@ -17,7 +17,7 @@ const ORBIT_SENSITIVITY = 0.005;
 // camera responsive without affecting mouse precision.
 const TOUCH_ORBIT_SENSITIVITY = 0.013;
 const ZOOM_SENSITIVITY = 0.8;
-const LOOK_HEIGHT = 1.5; // aim at the character's head, not its feet
+export const LOOK_HEIGHT = 1.5; // aim at the character's head, not its feet
 const CAMERA_NEAR_MIN = 2; // never pull closer than this when a wall intrudes
 const CAMERA_SKIN = 0.3; // keep the camera just off the surface it hit
 
@@ -152,5 +152,13 @@ export function useThirdPersonCamera() {
     camera.lookAt(aim.current);
   };
 
-  return { apply };
+  // Current orbit pose, for camera systems handing the camera back onto
+  // exactly this framing (the park balloon-cam eases onto it on exit).
+  const getPose = () => ({
+    yaw: yaw.current,
+    pitch: pitch.current,
+    distance: distance.current,
+  });
+
+  return { apply, getPose };
 }

@@ -33,6 +33,8 @@ import {
 } from "./stores/interactionStore";
 import { playFootstep } from "../utils/footsteps";
 import { useCharacterStore } from "./stores/characterStore";
+import { PARK_BOUNDS } from "./park/attractions";
+import { parkPlayerState, useParkNav } from "./park/parkStore";
 
 // The character walks the world's baked geometry: a downward ray finds the
 // surface under it each frame so it follows the uneven lawn and climbs onto the
@@ -56,9 +58,9 @@ const WALL_SLOPE_LIMIT = 0.5; // |normal.y| above this is floor, not wall
 
 const INTERACT_RANGE = 3.2; // how close to a panel/terminal to prompt for E
 
-// Soft world boundary: a box around the lawn that keeps the character from
-// wandering off the terrain into the void. Generous enough to reach every mob.
-const BOUNDS = { minX: -45, maxX: 45, minZ: -50, maxZ: 55 };
+// Soft world boundary — the park manifest's walkable bounds (PARK_BOUNDS),
+// imported rather than hardcoded so the attractions, this clamp, and save
+// validation cannot drift apart.
 // Footstep cadence (seconds between steps); a touch quicker while running.
 const STEP_WALK = 0.34;
 const STEP_RUN = 0.26;
@@ -79,18 +81,24 @@ export default function Player({ colliders, sendState }) {
   const currentFloor = useTourStore((state) => state.currentFloor);
   const endTour = useTourStore((state) => state.endTour);
   const setPrompt = useInteractionStore((state) => state.setPrompt);
+  const exitPark = useParkNav((state) => state.exit);
+  const parkMode = useParkNav((state) => state.mode);
   const [action, setAction] = useState("idle");
 
-  // Escape ends the guided tour at any time, handing control back to the
-  // character. The handler is harmless when no tour is running (endTour is
-  // idempotent), so it can stay registered for the component's lifetime.
+  // Escape hands control back one level: it ends the guided tour, and — when
+  // the balloon-cam has it (flying to / viewing an attraction) — exits the park
+  // page, which flies the camera back to the character. Both are idempotent, so
+  // the listener can stay registered for the component's lifetime.
   useEffect(() => {
     const onKeyDown = (event) => {
-      if (event.code === "Escape") endTour();
+      if (event.code === "Escape") {
+        endTour();
+        if (useParkNav.getState().mode !== "park") exitPark();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [endTour]);
+  }, [endTour, exitPark]);
 
   // Local character appearance, broadcast to peers and used to tint the model
   // and label the avatar.
@@ -211,6 +219,17 @@ export default function Player({ colliders, sendState }) {
       return;
     }
 
+    // The balloon-cam owns movement and the camera while flying to or viewing
+    // an attraction; the park resumes when the visitor backs out.
+    if (parkMode !== "park") {
+      if (nearest.current) {
+        nearest.current = null;
+        setPrompt(null);
+      }
+      interactWasHeld.current = held.interact;
+      return;
+    }
+
     // --- horizontal travel ---------------------------------------------------
     // Camera-relative axes, flattened onto the ground so looking down never
     // slows travel.
@@ -307,8 +326,8 @@ export default function Player({ colliders, sendState }) {
     }
 
     // Keep the character on the terrain, not out in the void.
-    position.current.x = clamp(position.current.x, BOUNDS.minX, BOUNDS.maxX);
-    position.current.z = clamp(position.current.z, BOUNDS.minZ, BOUNDS.maxZ);
+    position.current.x = clamp(position.current.x, PARK_BOUNDS.minX, PARK_BOUNDS.maxX);
+    position.current.z = clamp(position.current.z, PARK_BOUNDS.minZ, PARK_BOUNDS.maxZ);
 
     // --- ground following, gravity, and jump --------------------------------
     // Find the surface directly under the head. While the world is still
@@ -441,6 +460,17 @@ export default function Player({ colliders, sendState }) {
       step,
       colliders
     );
+
+    // Mirror the transform and orbit pose for the park balloon-cam (a plain
+    // module object — per-frame writes must not re-render). The rig eases onto
+    // this exact pose on exit so handing the camera back never cuts.
+    parkPlayerState.position = {
+      x: position.current.x,
+      y: position.current.y,
+      z: position.current.z,
+    };
+    parkPlayerState.yaw = yaw.current;
+    parkPlayerState.orbit = orbitCamera.getPose();
   });
 
   return (
