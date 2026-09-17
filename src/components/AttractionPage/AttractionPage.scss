@@ -1,0 +1,123 @@
+// Attraction content pages — plain typography over a dark scrim, shared by
+// all seven attraction page components (see ./registry.js).
+
+.attraction-page {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px 48px;
+  background: rgba(6, 8, 16, 0.88);
+  color: #ece9e2;
+}
+
+.attraction-page-panel {
+  width: 100%;
+  max-width: 620px;
+}
+
+.attraction-page-back {
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid rgba(236, 233, 226, 0.35);
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin-bottom: 20px;
+  cursor: pointer;
+}
+
+.attraction-page-back:hover,
+.attraction-page-back:focus-visible {
+  border-color: rgba(236, 233, 226, 0.85);
+}
+
+.attraction-page-title {
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+
+.attraction-page-tagline {
+  margin: 0 0 24px;
+  opacity: 0.75;
+}
+
+.attraction-section {
+  margin-bottom: 24px;
+}
+
+.attraction-section-header {
+  font-size: 1.25rem;
+  margin: 0 0 8px;
+}
+
+.attraction-section-paragraph {
+  line-height: 1.6;
+  margin: 0 0 8px;
+  // Bullets are kept verbatim in the data (" - founding team at lora.");
+  // pre-wrap preserves their indentation without reflowing the copy.
+  white-space: pre-wrap;
+}
+
+.attraction-book-author {
+  margin: -4px 0 8px;
+  opacity: 0.75;
+}
+
+.attraction-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.attraction-list li {
+  margin-bottom: 10px;
+}
+
+.attraction-link {
+  color: #ffd76a;
+  text-underline-offset: 2px;
+}
+
+.attraction-verify-note {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.attraction-image {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+// Motion only for visitors who have not requested reduced motion.
+@media (prefers-reduced-motion: no-preference) {
+  .attraction-page {
+    animation: attraction-page-fade 0.25s ease-out;
+  }
+
+  .attraction-link {
+    transition: color 0.15s ease;
+  }
+
+  .attraction-link:hover {
+    color: #fff2c4;
+  }
+}
+
+@keyframes attraction-page-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
