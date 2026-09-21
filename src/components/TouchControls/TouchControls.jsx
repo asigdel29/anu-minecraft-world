@@ -4,6 +4,8 @@ import "./TouchControls.scss";
 
 import { input } from "../../Experience/controls/inputState";
 import { isCoarsePointer } from "../../Experience/controls/orientation";
+import { useParkNav } from "../../Experience/park/parkStore";
+import { controlsForParkMode, CONTROLS_FLIGHT, CONTROLS_HIDDEN } from "./touchModes";
 
 // Joystick geometry and dead zone. The thumb is clamped to RADIUS px from the
 // base centre; a push past DEAD (as a fraction of RADIUS) along an axis sets
@@ -21,14 +23,45 @@ const DEAD = 0.28;
  * on a coarse pointer, and never on a mouse. The layout is tuned for landscape
  * and respects device safe areas (see TouchControls.scss); the OrientationHint
  * nudges the visitor to rotate when in portrait.
+ *
+ * Park navigation rides the same input paths — no parallel touch state. The
+ * park mode swaps the layout (see touchModes.js): while the balloon-cam flies,
+ * movement is paused as it is for keyboard, and a single stop control cancels
+ * the flight (the touch twin of Escape); while a page is open the controls
+ * yield to the page shell's own back button. Every control reacts to exactly
+ * one gesture handler (pointer-down/up) — no onClick twins — so a tap can
+ * never fire twice.
  */
 const TouchControls = () => {
   const [coarse] = useState(isCoarsePointer);
+  const parkMode = useParkNav((state) => state.mode);
+  const layout = controlsForParkMode(parkMode);
   const baseRef = useRef(null);
   const thumbRef = useRef(null);
   const center = useRef(null);
 
-  if (!coarse) return null;
+  if (!coarse || layout === CONTROLS_HIDDEN) return null;
+
+  const stopFlight = (event) => {
+    // Single gesture handler, fired once per press: cancel the flight and
+    // let the rig ease the camera back to the character.
+    event.stopPropagation();
+    useParkNav.getState().exit();
+  };
+
+  if (layout === CONTROLS_FLIGHT) {
+    return (
+      <div className="touch-controls" aria-hidden="true">
+        <button
+          type="button"
+          className="touch-flight-stop"
+          onPointerDown={stopFlight}
+        >
+          Stop
+        </button>
+      </div>
+    );
+  }
 
   const updateFromPointer = (event) => {
     if (!center.current) return;

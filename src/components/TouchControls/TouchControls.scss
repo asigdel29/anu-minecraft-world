@@ -46,7 +46,8 @@
 // Right/bottom offsets include the device safe-area like the joystick.
 .touch-jump,
 .touch-interact,
-.touch-run {
+.touch-run,
+.touch-flight-stop {
   position: fixed;
   z-index: 95;
   pointer-events: auto;
@@ -62,6 +63,17 @@
   background-color: styles.$color-base-overlay-gray;
   border: 2px solid styles.$color-base-dark-gray-four;
   box-shadow: inset 2px 2px #ffffff20, inset -2px -2px #00000060;
+}
+
+// While the balloon-cam flies, the movement cluster is replaced by a single
+// stop control pinned top-right (out of the thumb's roam positions), the
+// touch twin of the Escape key.
+.touch-flight-stop {
+  top: calc(16px + env(safe-area-inset-top));
+  right: calc(20px + env(safe-area-inset-right));
+  width: 96px;
+  height: 52px;
+  border-radius: 26px;
 }
 
 .touch-jump {
