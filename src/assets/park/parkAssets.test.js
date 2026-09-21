@@ -1,7 +1,7 @@
 // Budget + reference checks for the park GLB pipeline (LOR-2423).
 //
 // Pure module over node:fs — no app code, no DOM. Three gates:
-// 1. every GLB the park manifest expects exists at assets/park/
+// 1. every GLB the park manifest expects exists at public/models/park/
 // 2. per-file ≤ 2 MB and park-total ≤ 12 MB (replaces the stale island
 //    "54 MB" claim with measured numbers)
 // 3. each GLB honors the runtime contract: glTF binary magic, Draco
@@ -33,7 +33,7 @@ const PARK_NAV_IDS = [
 ];
 
 const here = dirname(fileURLToPath(import.meta.url));
-const parkDir = resolve(here, "../../../assets/park");
+const parkDir = resolve(here, "../../../public/models/park");
 
 function glbPath(key) {
   return join(parkDir, `${key}-transformed.glb`);
